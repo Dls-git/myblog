@@ -1,0 +1,13 @@
+<script setup>
+
+</script>
+
+<template>
+    <div>
+        <h1>时间轴</h1>
+    </div>
+</template>
+
+<style scoped>
+
+</style>

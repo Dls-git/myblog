@@ -1,0 +1,9 @@
+/* 卡片缩放动画 */
+@keyframes hoverScaleToWide {
+    0% {
+        transform: scaleX(1);
+    }
+    100% {
+        transform: scaleX(1.02);
+    }
+}
