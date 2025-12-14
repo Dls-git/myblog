@@ -29,41 +29,78 @@ import card from "@/views/home/component/card.vue";
       <h2 class="title">分类</h2>
         <br>
       <div class="category-card hover-scale-to-wide">
-        <span>HTML</span>
+        <div style="display: flex;align-items: center;">
+          <img src="@/assets/img/seo-folder.png" style="width: 30px;height: 30px;margin-right: 5px" alt="">
+          <span>HTML</span>
+        </div>
         <span>10</span>
       </div>
       <div class="category-card hover-scale-to-wide">
-        <span>CSS</span>
+        <div style="display: flex;align-items: center;">
+          <img src="@/assets/img/seo-folder.png" style="width: 30px;height: 30px;margin-right: 5px" alt="">
+          <span>Vue</span>
+        </div>
         <span>10</span>
       </div>
       <div class="category-card hover-scale-to-wide">
-        <span>JavaScript</span>
+        <div style="display: flex;align-items: center;">
+          <img src="@/assets/img/seo-folder.png" style="width: 30px;height: 30px;margin-right: 5px" alt="">
+          <span>Vue</span>
+        </div>
         <span>10</span>
       </div>
       <div class="category-card hover-scale-to-wide">
-        <span>Vue</span>
+        <div style="display: flex;align-items: center;">
+          <img src="@/assets/img/seo-folder.png" style="width: 30px;height: 30px;margin-right: 5px" alt="">
+          <span>java</span>
+        </div>
         <span>10</span>
       </div>
     </div>
       <div class="tag">
         <h2 class="title">标签</h2>
         <div class="tag-flex-box">
-        <div class="tag-card hover-scale-to-wide">
+             <div class="tag-card hover-scale-to-wide">
           <span>HTML</span>
           &nbsp;
           <span>10</span>
         </div>
-        <div class="tag-card hover-scale-to-wide">
+            <div class="tag-card hover-scale-to-wide">
           <span>CSS</span>
           &nbsp;
           <span>10</span>
         </div>
-        <div class="tag-card hover-scale-to-wide">
+            <div class="tag-card hover-scale-to-wide">
+            <span>CSS</span>
+            &nbsp;
+            <span>10</span>
+          </div>
+            <div class="tag-card hover-scale-to-wide">
+            <span>CSS</span>
+            &nbsp;
+            <span>10</span>
+          </div>
+            <div class="tag-card hover-scale-to-wide">
+            <span>CSS</span>
+            &nbsp;
+            <span>10</span>
+          </div>
+            <div class="tag-card hover-scale-to-wide">
+            <span>CSS</span>
+            &nbsp;
+            <span>10</span>
+          </div>
+            <div class="tag-card hover-scale-to-wide">
+            <span>CSS</span>
+            &nbsp;
+            <span>10</span>
+          </div>
+            <div class="tag-card hover-scale-to-wide">
           <span>JavaScript</span>
           &nbsp;
           <span>10</span>
         </div>
-        <div class="tag-card hover-scale-to-wide">
+            <div class="tag-card hover-scale-to-wide">
           <span>Vue</span>
           &nbsp;
           <span>5</span>
@@ -169,8 +206,9 @@ import card from "@/views/home/component/card.vue";
     .tag-flex-box{
       display: flex;
       flex-wrap: wrap;
-      justify-content: space-between;
       .tag-card{
+        margin-top: 10px;
+        margin-right: 10px;
         height: 50px;
         /* 标签卡片的文字垂直居中 */
         line-height: 50px;

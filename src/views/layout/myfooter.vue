@@ -31,13 +31,13 @@
     <div class="footer-content">
      <div class="btn-box">
        <button class=" sun">
-
+    <img src="@/assets/img/sun.png" style="height: 24px; width: 24px;" alt="">
        </button>
-       <button class="computer">
-
+       <button class="bytedance">
+        <img src="@/assets/img/bytedance.png" style="height: 24px; width: 24px;" alt="">
        </button>
-       <button class=" moon">
-
+       <button class=" moon ">
+        <img src="@/assets/img/moon.png" style="height: 24px; width: 24px;" alt="">
        </button>
      </div>
     </div>
@@ -63,12 +63,18 @@
       align-items: center;
     .btn-box{
       height: 50px;
+      width: 200px;
       background: black;
       border-radius: 25px;
       padding: 2px;
       display: flex;
       justify-content: space-between;
       button{
+        /*图标居中*/
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
         height: 45px;
         width: 45px;
         background: white;

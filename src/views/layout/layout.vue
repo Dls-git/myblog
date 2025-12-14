@@ -9,9 +9,12 @@ import myfooter from "@/views/layout/myfooter.vue";
   </div>
   <div class="container">
     <div class="main">
-      <router-view>
-
-      </router-view>
+<!--      /*跳转页面的效果*/-->
+      <RouterView v-slot="{ Component, route }">
+        <Transition name="router-fade" mode="out-in">
+          <component :is="Component" :key="route.fullPath" />
+        </Transition>
+      </RouterView>
     </div>
   </div>
     <myfooter>

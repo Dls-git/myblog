@@ -6,7 +6,7 @@ const router = createRouter({
         // 根路径重定向到 /layout（正确）
         {
             path: '/',
-            redirect: '/layout'
+            redirect: '/layout/home'
         },
         // layout 父路由（嵌套路由的核心）
         {

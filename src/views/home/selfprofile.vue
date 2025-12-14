@@ -10,8 +10,19 @@
         Only the paranoid survive.</h2>
       <p class="text-content small-font">We're not exactly in a position to be trusted with secrets, are we?</p>
       <div class="other-link">
-        <button class="other-link-bth" ></button>
-        <button class="other-link-bth" ></button>
+        <button class="other-link-bth" >
+          <img src="@/assets/img/github.png" alt="github">
+        </button>
+        <button class="other-link-bth">
+          <img src="@/assets/img/QQ.png" alt="QQ">
+        </button>
+        <button class="other-link-bth">
+          <img src="@/assets/img/wechat.png" alt="wechat">
+        </button>
+        <button class="other-link-bth">
+          <img src="@/assets/img/mail.png" alt="mail">
+        </button>
+
       </div>
     </div>
     <div class="my-image ">
@@ -47,6 +58,16 @@
         &:not(:first-child) {
           margin-left: 10px;
         }
+        &:hover{
+          /*动画效果*/
+          animation: ToWide 0.3s ease-in-out forwards;
+          cursor: pointer;
+        }
+        /*让图标压在按钮里*/
+        img{
+          width: 30px;
+          height: 30px;
+        }
       }
 
     }
@@ -63,6 +84,14 @@
       width: 450px;
       object-fit: cover;
     }
+  }
+}
+@keyframes ToWide {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.2);
   }
 }
 

@@ -31,7 +31,7 @@ p {
         /*同时加上一些阴影*/
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
         animation: hoverScaleToWide 0.3s ease-in-out forwards;
-        background: rgba(246, 215, 215);
         cursor: pointer;
     }
 }
+

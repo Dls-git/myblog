@@ -10,7 +10,7 @@
 </div>
 <div class="nav box arrange">
   <div class="nav-container arrange">
-    <div class="nav-item arrange hover-item">
+    <div class="nav-item arrange hover-item  ">
       <router-link to="/" class="home link">首页</router-link>
     </div>
      <div class="nav-item hover-item">
@@ -25,7 +25,9 @@
      </div>
 </div>
   <div class="search box " >
-     <button class="search-btn">搜索</button>
+     <button class="search-btn">
+       <img src="@/assets/img/search.png" style="height: 24px; width: 24px;" alt="">
+     </button>
   </div>
 </div>
 
@@ -42,6 +44,7 @@
   display: flex;
   /*固定在顶部*/
   position: fixed;
+  z-index: 2;
   background: rgba(255, 255, 255, 0.8); /* 半透明白色背景 */
   /* 模糊背景 */
   backdrop-filter: blur(10px);
@@ -111,10 +114,11 @@
     display: block;
     border-radius: 50%;
     border: none;
-    height: 70px;
-    width: 70px;
+    height: 50px;
+    width: 50px;
     /*控制和内容在一个区域*/
     margin-right: 10vw;
   }
 }
+
 </style>
