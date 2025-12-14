@@ -1,90 +1,246 @@
 <script setup>
+import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { posts } from '@/posts';
 
+// 1. 运行时间计算
+const startDate = new Date('2025-12-11'); // 你的博客创建日期
+const runningTime = ref('');
+let timer = null;
+
+const calculateRunningTime = () => {
+  const now = new Date();
+  const diff = now - startDate;
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+  runningTime.value = `${days} 天 ${hours} 小时 ${minutes} 分 ${seconds} 秒`;
+};
+
+// 2. 总字数统计
+const totalWordCount = computed(() => {
+  let count = 0;
+  Object.values(posts).forEach(post => {
+    const wordCount = post.frontmatter?.wordCount || 0;
+    count += Number(wordCount);
+  });
+  return (count / 1000).toFixed(1) + 'k';
+});
+
+onMounted(() => {
+  calculateRunningTime();
+  timer = setInterval(calculateRunningTime, 1000);
+});
+
+onUnmounted(() => {
+  if (timer) clearInterval(timer);
+});
 </script>
 
 <template>
-<div class="container">
-  <div class="flex-box">
-  <div class="footer-content">
-    <p>
-      Powered by Dls & Designed by Gyoza
-    </p>
-  </div>
-  <div class="footer-content">
-    <p>
-      Contact us: <a href="2879664978@qq.com" style="text-decoration: none; color: rgb(255, 102, 102,0.5);">2879664978qq.com</a>
-    </p>
-  </div>
-  <div class="footer-content">
-    <p>
-      Follow us:
-      <a href="https://www.facebook.com/yourpage" style="text-decoration: none; color: rgb(255, 102, 102,0.5);">Facebook</a>,
-      <a href="https://www.twitter.com/yourpage" style="text-decoration: none; color: rgb(255, 102, 102,0.5);">Twitter</a>,
-      <a href="https://www.instagram.com/yourpage" style="text-decoration: none; color: rgb(255, 102, 102,0.5);">Instagram</a>
-    </p>
-  </div>
+  <footer class="footer-wrapper">
     <div class="footer-content">
-      <p>
-        已经运行了 0 天  共写了 0.0k 字
-      </p>
+
+      <!-- 左侧：版权信息与简介 -->
+      <div class="footer-section brand">
+        <h3 class="logo-text">My Blog</h3>
+        <p class="desc">
+          写来玩玩，以后重构<br>
+          持续学习
+        </p>
+        <p class="copyright">
+          &copy; {{ new Date().getFullYear() }} Youth Finished design by <a href="https://github.com/lxchapu/astro-gyoza">Gyoza</a>.
+        </p>
+
+      </div>
+
+      <!-- 中间：站点统计 -->
+      <div class="footer-section stats">
+        <h4>站点统计</h4>
+        <div class="stat-item">
+          <span class="label">运行时间：</span>
+          <span class="value">{{ runningTime }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="label">文章总数：</span>
+          <span class="value">{{ Object.keys(posts).length }} 篇</span>
+        </div>
+        <div class="stat-item">
+          <span class="label">总字数：</span>
+          <span class="value">{{ totalWordCount }} 字</span>
+        </div>
+      </div>
+
+      <!-- 右侧：社交链接 -->
+      <div class="footer-section social">
+        <h4>联系我</h4>
+        <div class="social-links">
+          <a href="https://github.com" target="_blank" title="Github">
+            <i class="fab fa-github"></i> Github
+          </a>
+          <a href="mailto:example@email.com" title="Email">
+            <i class="fas fa-envelope"></i> Email
+          </a>
+          <a href="#" title="RSS">
+            <i class="fas fa-rss"></i> RSS
+          </a>
+        </div>
+      </div>
+
     </div>
-    <div class="footer-content">
-     <div class="btn-box">
-       <button class=" sun">
-    <img src="@/assets/img/sun.png" style="height: 24px; width: 24px;" alt="">
-       </button>
-       <button class="bytedance">
-        <img src="@/assets/img/bytedance.png" style="height: 24px; width: 24px;" alt="">
-       </button>
-       <button class=" moon ">
-        <img src="@/assets/img/moon.png" style="height: 24px; width: 24px;" alt="">
-       </button>
-     </div>
+
+    <!-- 底部装饰条 -->
+    <div class="footer-bottom">
+        <p>Powered by <a href="https://cn.vuejs.org/" target="_blank">Vue 3</a> & Designed with ❤️</p>
     </div>
-</div>
-</div>
+  </footer>
 </template>
 
-<style scoped>
-.container{
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding-top: 50px;
-  padding-bottom: 50px;
-  /*设置字体*/
-  color: rgb(30,30,30,0.5);
-  font-size: 20px;
-  .footer-content{
-    margin-top: 20px;
-      /*所有box在居中的基础上再次居中,按钮居中 */
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    .btn-box{
-      height: 50px;
-      width: 200px;
-      background: black;
-      border-radius: 25px;
-      padding: 2px;
-      display: flex;
-      justify-content: space-between;
-      button{
-        /*图标居中*/
-        display: flex;
-        justify-content: center;
-        align-items: center;
+<style scoped lang="scss">
+.footer-wrapper {
+  background: rgb(var(--color-bg-primary));
+  border-top: 1px solid rgba(var(--color-border-primary), 0.1);
+  padding: 60px 0 20px;
+  margin-top: 80px;
+  color: rgb(var(--color-text-primary));
+}
 
-        height: 45px;
-        width: 45px;
-        background: white;
-        border-radius: 50%;
-        font-size: 20px;
-        color: black;
-        &:hover{
-          cursor: pointer;
-        }
-      }
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 20px;
+  flex-wrap: wrap;
+  gap: 40px;
+}
+
+.footer-section {
+  flex: 1;
+  min-width: 250px;
+}
+
+/* 品牌区域 */
+.brand {
+  .logo-text {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    background: linear-gradient(120deg, #409eff, #667eea);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .desc {
+    font-size: 14px;
+    line-height: 1.6;
+    opacity: 0.7;
+    margin-bottom: 20px;
+  }
+
+  .copyright {
+    font-size: 12px;
+    opacity: 0.5;
+  }
+}
+
+/* 统计区域 */
+.stats h4, .social h4 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  position: relative;
+  display: inline-block;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -5px;
+    width: 30px;
+    height: 3px;
+    background: #409eff;
+    border-radius: 2px;
+  }
+}
+
+.stat-item {
+  margin-bottom: 10px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  .label {
+    opacity: 0.6;
+  }
+
+  .value {
+    font-family: monospace;
+    font-weight: bold;
+  }
+}
+
+/* 社交链接 */
+.social-links {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  a {
+    text-decoration: none;
+    color: rgb(var(--color-text-primary));
+    opacity: 0.7;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+
+    &:hover {
+      opacity: 1;
+      color: #409eff;
+      transform: translateX(5px);
+    }
+  }
+}
+
+/* 底部装饰 */
+.footer-bottom {
+  text-align: center;
+  margin-top: 50px;
+  padding-top: 20px;
+  border-top: 1px dashed rgba(var(--color-border-primary), 0.1);
+  font-size: 12px;
+  opacity: 0.5;
+
+  a {
+    color: inherit;
+    text-decoration: underline;
+  }
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .footer-content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .stats h4::after, .social h4::after {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .stat-item {
+    justify-content: center;
+  }
+
+  .social-links {
+    align-items: center;
+
+    a:hover {
+      transform: scale(1.1);
     }
   }
 }

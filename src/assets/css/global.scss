@@ -1,0 +1,47 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  background: rgb(var(--color-bg-root));
+}
+
+.arrange {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* global.css 中重置默认样式 */
+h2, h3, p {
+  margin: 0;
+}
+
+/* 小字类 */
+.small-font {
+  font-size: 20px;
+  opacity: 0.5;
+}
+
+/* 分类卡片的缩放动画 */
+.hover-scale-to-wide {
+  &:hover {
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    animation: hoverScaleToWide 0.3s ease-in-out forwards;
+    cursor: pointer;
+  }
+}
+
+/* View Transitions Styles */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-new(root) {
+  z-index: 9999;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}

@@ -20,20 +20,23 @@ import content from "@/views/home/content.vue";
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .home-root {
   display: block;
 }
-.nothing-here{
-  border: cadetblue 5px solid;
+
+.nothing-here {
   margin-top: 100px;
 }
-.flex-box{
+
+.flex-box {
   display: flex;
   flex-direction: column;
   align-items: center;
+
   .arrow-down-container {
     margin-top: 20px;
+
     .arrow-down {
       animation: arrow-down 1.2s ease-in-out infinite;
       display: block;
@@ -42,6 +45,7 @@ import content from "@/views/home/content.vue";
     }
   }
 }
+
 /*给arrow-down添加动画*/
 @keyframes arrow-down {
   0% {
@@ -54,6 +58,4 @@ import content from "@/views/home/content.vue";
     transform: translateY(0);
   }
 }
-
-
 </style>

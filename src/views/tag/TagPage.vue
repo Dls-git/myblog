@@ -1,13 +1,16 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { posts } from '@/posts';
 import Card from "@/views/home/component/card.vue";
+
+const route = useRoute();
+const tagName = computed(() => route.params.name);
 
 // 处理文章数据
 const allPosts = computed(() => {
   return Object.keys(posts).map(slug => {
     const post = posts[slug];
-    // frontmatter 由 vite-plugin-md 提供 (需要确保插件已更新)
     const fm = post.frontmatter || {};
     return {
       slug,
@@ -15,22 +18,26 @@ const allPosts = computed(() => {
       date: fm.date || '',
       description: fm.description || '',
       tags: fm.tags || [],
-      category: fm.category || '未分类',
-      readingTime: fm.readingTime || 0,
-      wordCount: fm.wordCount || 0
+      category: fm.category || '未分类'
     };
   }).sort((a, b) => {
     return new Date(b.date) - new Date(a.date);
   });
 });
 
+// 过滤当前标签的文章
+const tagPosts = computed(() => {
+  if (!tagName.value) return [];
+  return allPosts.value.filter(post => post.tags.includes(tagName.value));
+});
+
 // 分页逻辑
 const currentPage = ref(1);
 const pageSize = 6;
-const totalPages = computed(() => Math.ceil(allPosts.value.length / pageSize));
+const totalPages = computed(() => Math.ceil(tagPosts.value.length / pageSize));
 const displayPosts = computed(() => {
   const start = (currentPage.value - 1) * pageSize;
-  return allPosts.value.slice(start, start + pageSize);
+  return tagPosts.value.slice(start, start + pageSize);
 });
 
 const changePage = (page) => {
@@ -40,7 +47,12 @@ const changePage = (page) => {
   }
 };
 
-// 统计分类
+// 监听路由变化重置分页
+watch(tagName, () => {
+  currentPage.value = 1;
+});
+
+// 统计分类 (用于侧边栏)
 const categories = computed(() => {
   const counts = {};
   allPosts.value.forEach(post => {
@@ -53,7 +65,7 @@ const categories = computed(() => {
   })).sort((a, b) => b.count - a.count);
 });
 
-// 统计标签
+// 统计标签 (用于侧边栏)
 const tags = computed(() => {
   const counts = {};
   allPosts.value.forEach(post => {
@@ -74,7 +86,7 @@ const tags = computed(() => {
   <div class="content-wrapper">
     <!-- 左侧：文章列表 -->
     <div class="main-content">
-      <h2 class="section-title">最新发布</h2>
+      <h2 class="section-title">标签: #{{ tagName }}</h2>
       
       <div class="post-list">
         <template v-if="displayPosts.length > 0">
@@ -85,12 +97,10 @@ const tags = computed(() => {
             :date="post.date"
             :description="post.description"
             :slug="post.slug"
-            :reading-time="post.readingTime"
-            :word-count="post.wordCount"
           />
         </template>
         <div v-else class="empty-state">
-          <p>暂无文章</p>
+          <p>该标签下暂无文章</p>
         </div>
       </div>
 
@@ -152,6 +162,7 @@ const tags = computed(() => {
             :key="tag.name" 
             :to="`/layout/tag/${tag.name}`"
             class="tag-item"
+            :class="{ active: tag.name === tagName }"
           >
             {{ tag.name }} 
             <span class="tag-count">{{ tag.count }}</span>
@@ -292,6 +303,7 @@ const tags = computed(() => {
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s;
+  text-decoration: none;
 
   &:hover {
     background: #e6f7ff;
@@ -343,6 +355,11 @@ const tags = computed(() => {
   text-decoration: none;
 
   &:hover {
+    background: #409eff;
+    color: white;
+  }
+
+  &.active {
     background: #409eff;
     color: white;
   }

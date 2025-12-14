@@ -1,0 +1,23 @@
+/* 移除之前可能冲突的样式，保留这些 */
+/*页面切换的动画*/
+.router-fade-enter-from,
+.router-fade-leave-to {
+    opacity: 0;
+}
+
+.router-fade-enter-to,
+.router-fade-leave-from {
+    opacity: 1;
+}
+
+.router-fade-enter-active,
+.router-fade-leave-active {
+    transition: opacity 0.3s ease,  0.3s ease;
+    will-change: opacity;
+}
+
+/* 确保动画过程中不影响交互 */
+.router-fade-enter-active,
+.router-fade-leave-active {
+    pointer-events: none;
+}

@@ -22,21 +22,28 @@ import myfooter from "@/views/layout/myfooter.vue";
     </myfooter>
 </template>
 
-<style scoped>
-.container{
+<style scoped lang="scss">
+.container {
   /* 容器,80的视口宽度是为了给左右两侧留margrin */
   height: 100%;
   width: 80vw;
-  margin:0 auto;
-  border: lightskyblue 3px solid;
+  margin: 0 auto;
 }
+
+@media (max-width: 768px) {
+  .container {
+    width: 95vw; /* 在移动端增加宽度 */
+  }
+}
+
 .site-header {
   /* 头部,固定在顶部 ,设置高度为100px*/
   height: 100px;
 }
-.main{
+
+.main {
   /* 主体内容,距离顶部100px */
+  box-sizing: border-box;
   margin-top: 100px;
 }
-
 </style>
