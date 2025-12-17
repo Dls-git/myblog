@@ -24,7 +24,7 @@ const handleLinkClick = (link) => {
 }
 
 // 打字机效果
-const fullText = "Hi there, I'm Youth👋\nOnly the paranoid survive."
+const fullText = "Hi new friend, I'm Youth👋\nWelcome to my blog!"
 const displayedText = ref('')
 const typingSpeed = 100 // 打字速度 ms
 
@@ -48,7 +48,7 @@ onMounted(() => {
         <span class="typewriter-text">{{ displayedText }}</span>
         <span class="cursor">|</span>
       </h2>
-      <p class="text-content small-font">We're not exactly in a position to be trusted with secrets, are we?</p>
+      <p class="text-content small-font">What does not kill me, makes me stronger</p>
 
       <div class="other-link">
         <div

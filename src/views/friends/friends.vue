@@ -1,28 +1,120 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import FriendCard from "@/views/friends/friend-card.vue";
+import FriendApplyModal from "@/views/friends/FriendApplyModal.vue";
+
+const showApplyModal = ref(false)
 
 // 示例数据，你可以根据需要修改
 const friendsList = ref([
   {
-    name: '张三',
-    desc: '介绍你自己',
-    avatar: '', // 可以填入图片路径，例如 new URL('@/assets/img/Mikasa.jpg', import.meta.url).href
-    link: 'https://github.com'
-  },
-  {
-    name: '李四',
-    desc: '选择你喜欢的格言',
-    avatar: '',
+    name: 'GSSD_NrxRobot404',
+    desc: '茉莉花茶我还喜欢',
+    avatar: new URL('../../assets/friendsAvatar/GSSD_NrxRobot404.jpg', import.meta.url).href,
     link: '#'
   },
   {
-    name: 'My Blog',
+    name: 'Lemon &X.',
+    desc: '自由的鸟哪怕身处牢笼也闪烁着自由的光芒',
+    avatar: new URL('../../assets/friendsAvatar/Lemon&X.jpg', import.meta.url).href,
+    link: '#'
+  },
+  {
+    name: 'hsns128',
     desc: '或选择你的个性签名',
-    avatar: '',
-    link: '/'
-  }
+    avatar: new URL('../../assets/friendsAvatar/hsns128.jpg', import.meta.url).href,
+    link: '#'
+  },
+    {
+      name: "FLCL",
+      desc: "200%",
+      avatar: new URL('../../assets/friendsAvatar/FLCL.jpg', import.meta.url).href,
+      link: "#"
+    },
+    {
+      name: "翁呀跋",
+      desc: "DBAA",
+      avatar: new URL('../../assets/friendsAvatar/wyb.jpg', import.meta.url).href,
+      link: "#"
+    },
+    {
+      name: "Tulmo",
+      desc: "sui!",
+      avatar: new URL('../../assets/friendsAvatar/Tulmo.jpg', import.meta.url).href,
+      link: "#"
+    },
+    {
+      name: "Friend 4",
+      desc: "A cool friend passionate about music.",
+      avatar: "",
+      link: "#"
+    },
+    {
+      name: "Friend 5",
+      desc: "A cool friend who likes cooking.",
+      avatar: "",
+      link: "#"
+    },
+    {
+      name: "Friend 6",
+      desc: "A cool friend into coding.",
+      avatar: "",
+      link: "#"
+    },
+    {
+      name: "Friend 7",
+      desc: "A cool friend who loves traveling.",
+      avatar: "",
+      link: "#"
+    },
+    {
+      name: "Friend 8",
+      desc: "A cool friend passionate about art.",
+      avatar: "",
+      link: "#"
+    },
+    {
+      name: "Friend 9",
+      desc: "A cool friend who likes gaming.",
+      avatar: "",
+      link: "#"
+    },
+    {
+      name: "Friend 10",
+      desc: "A cool friend into fitness.",
+      avatar: "",
+      link: "#"
+    },
+    {
+      name: "Friend 11",
+      desc: "A cool friend who enjoys writing.",
+      avatar: "",
+      link: "#"
+    },
+    {
+      name: "Friend 12",
+      desc: "A cool friend passionate about movies.",
+      avatar: "",
+      link: "#"
+    }
 ])
+
+// 分页逻辑
+const currentPage = ref(1)
+const pageSize = 12 // 每页显示12个好友
+const totalPages = computed(() => Math.ceil(friendsList.value.length / pageSize))
+
+const displayFriends = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  return friendsList.value.slice(start, start + pageSize)
+})
+
+const changePage = (page) => {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+}
 </script>
 
 <template>
@@ -31,13 +123,16 @@ const friendsList = ref([
       <div class="header-section">
         <h1 class="title">我的好友</h1>
         <p class="subtitle">
-          这里是我的好友列表。<br>
+          这里是我的好友列表。欢迎申请友链<br>
+          <button class="apply-btn" @click="showApplyModal = true">
+            + 申请友链
+          </button>
         </p>
       </div>
 
       <div class="friends-grid">
         <FriendCard
-          v-for="(friend, index) in friendsList"
+          v-for="(friend, index) in displayFriends"
           :key="index"
           :name="friend.name"
           :desc="friend.desc"
@@ -46,19 +141,43 @@ const friendsList = ref([
         />
       </div>
 
-      <!-- 友链申请说明区域，可选 -->
-      <!-- <div class="apply-section">
-        <h3>友链申请</h3>
-        <p>名称：My Blog</p>
-        <p>简介：一个记录学习与生活的个人博客</p>
-        <p>链接：https://myblog.com</p>
-        <p>头像：https://myblog.com/avatar.png</p>
-      </div> -->
+      <!-- 分页 -->
+      <div class="pagination" v-if="totalPages > 1">
+        <button
+          class="page-btn"
+          :disabled="currentPage === 1"
+          @click="changePage(currentPage - 1)"
+        >
+          &lt;
+        </button>
+        <button
+          v-for="page in totalPages"
+          :key="page"
+          class="page-btn"
+          :class="{ active: currentPage === page }"
+          @click="changePage(page)"
+        >
+          {{ page }}
+        </button>
+        <button
+          class="page-btn"
+          :disabled="currentPage === totalPages"
+          @click="changePage(currentPage + 1)"
+        >
+          &gt;
+        </button>
+      </div>
+
+      <FriendApplyModal
+        :visible="showApplyModal"
+        @close="showApplyModal = false"
+      />
     </div>
   </div>
 </template>
 
 <style scoped lang="scss">
+/* ... (保留原有样式) ... */
 .friends-wrapper {
   padding-top: 120px;
   padding-bottom: 60px;
@@ -90,6 +209,28 @@ const friendsList = ref([
   line-height: 1.6;
   color: rgb(var(--color-text-primary));
   opacity: 0.8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.apply-btn {
+  padding: 8px 24px;
+  border-radius: 99px;
+  border: 1px solid rgba(var(--color-border-primary), 0.2);
+  background: rgb(var(--color-bg-secondary));
+  color: rgb(var(--color-text-primary));
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+
+  &:hover {
+    background: #409eff;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
+  }
 }
 
 .friends-grid {
@@ -99,23 +240,39 @@ const friendsList = ref([
   margin-bottom: 80px;
 }
 
-.apply-section {
-  background: rgb(var(--color-bg-secondary) / 0.3);
-  padding: 40px;
-  border-radius: 24px;
-  text-align: center;
+/* 分页样式 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 40px;
+}
 
-  h3 {
-    font-size: 1.5rem;
-    margin-bottom: 20px;
-    color: rgb(var(--color-text-primary));
+.page-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 12px;
+  background: rgb(var(--color-bg-secondary));
+  color: rgb(var(--color-text-primary));
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+
+  &:hover:not(:disabled) {
+    background: #409eff;
+    color: white;
   }
 
-  p {
-    margin: 10px 0;
-    color: rgb(var(--color-text-primary));
-    opacity: 0.8;
-    font-size: 1rem;
+  &.active {
+    background: #409eff;
+    color: white;
+    font-weight: bold;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 }
 
