@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { posts } from '@/posts';
 import Card from "@/views/home/component/card.vue";
+import ActivityGraph from "@/components/ActivityGraph.vue";
 
 // 处理文章数据
 const allPosts = computed(() => {
@@ -120,6 +121,9 @@ const tags = computed(() => {
           &gt;
         </button>
       </div>
+
+      <!-- 活跃度时间线 -->
+      <ActivityGraph />
     </div>
 
     <!-- 右侧：侧边栏 -->

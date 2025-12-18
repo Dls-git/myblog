@@ -1,6 +1,8 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { posts } from '@/posts';
+import { thoughts } from '@/posts/dataJs/thoughts.js';
+import { photos } from '@/posts/dataJs/photos.js';
 
 // 1. 运行时间计算
 const startDate = new Date('2025-12-11'); // 你的博客创建日期
@@ -17,15 +19,28 @@ const calculateRunningTime = () => {
   runningTime.value = `${days} 天 ${hours} 小时 ${minutes} 分 ${seconds} 秒`;
 };
 
-// 2. 总字数统计
+// 2. 总字数统计 (文章 + 说说)
 const totalWordCount = computed(() => {
   let count = 0;
+  
+  // 统计文章字数
   Object.values(posts).forEach(post => {
     const wordCount = post.frontmatter?.wordCount || 0;
     count += Number(wordCount);
   });
+
+  // 统计说说字数 (简单计算内容长度)
+  thoughts.forEach(thought => {
+    count += thought.content.length;
+  });
+
   return (count / 1000).toFixed(1) + 'k';
 });
+
+// 3. 各类内容统计
+const postCount = Object.keys(posts).length;
+const thoughtCount = thoughts.length;
+const photoCount = photos.length;
 
 onMounted(() => {
   calculateRunningTime();
@@ -62,8 +77,16 @@ onUnmounted(() => {
           <span class="value">{{ runningTime }}</span>
         </div>
         <div class="stat-item">
-          <span class="label">文章总数：</span>
-          <span class="value">{{ Object.keys(posts).length }} 篇</span>
+          <span class="label">文章：</span>
+          <span class="value">{{ postCount }} 篇</span>
+        </div>
+        <div class="stat-item">
+          <span class="label">说说：</span>
+          <span class="value">{{ thoughtCount }} 条</span>
+        </div>
+        <div class="stat-item">
+          <span class="label">瞬间：</span>
+          <span class="value">{{ photoCount }} 张</span>
         </div>
         <div class="stat-item">
           <span class="label">总字数：</span>

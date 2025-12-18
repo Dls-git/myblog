@@ -3,38 +3,83 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 // import { ClockCircleOutlined, CalendarOutlined } from '@ant-design/icons-vue';
 import { ClockCircleOutlined, CalendarOutlined } from '@ant-design/icons-vue';
 import { posts } from '@/posts';
+import { thoughts } from '@/posts/dataJs/thoughts.js';
+import { quotes } from '@/posts/dataJs/quotes.js';
+import { photos } from '@/posts/dataJs/photos.js';
 
 const now = ref(new Date());
 let timer = null;
 
 // 处理文章数据
-const allPosts = computed(() => {
-  return Object.keys(posts).map(slug => {
+const allItems = computed(() => {
+  // 1. 处理文章
+  const postItems = Object.keys(posts).map(slug => {
     const post = posts[slug];
     const fm = post.frontmatter || {};
     return {
+      type: 'post',
+      id: slug,
       slug,
       title: fm.title || slug,
       date: fm.date ? new Date(fm.date) : new Date(),
       description: fm.description || '',
     };
-  }).sort((a, b) => b.date - a.date);
+  });
+
+  // 2. 处理说说 (thoughts)
+  const thoughtItems = thoughts.map(thought => {
+    return {
+      type: 'thought',
+      id: `thought-${thought.id}`,
+      title: thought.content, // 标题即内容
+      date: new Date(thought.date),
+      description: '',
+      link: '/layout/thinking' // 跳转到思考页
+    };
+  });
+
+  // 3. 处理摘录 (quotes)
+  const quoteItems = quotes.map(quote => {
+    return {
+      type: 'quote',
+      id: `quote-${quote.id}`,
+      title: quote.content, // 标题即内容
+      date: new Date(quote.date),
+      description: '',
+      link: '/layout/quotes' // 跳转到摘录页
+    };
+  });
+
+  // 4. 处理照片 (photos)
+  const photoItems = photos.map(photo => {
+    return {
+      type: 'photo',
+      id: `photo-${photo.id}`,
+      title: photo.title, // 标题即照片标题
+      date: new Date(photo.date),
+      description: '',
+      link: '/layout/gallery' // 跳转到相册页
+    };
+  });
+
+  // 5. 合并并排序
+  return [...postItems, ...thoughtItems, ...quoteItems, ...photoItems].sort((a, b) => b.date - a.date);
 });
 
 // 按年份分组
-const postsByYear = computed(() => {
+const itemsByYear = computed(() => {
   const groups = {};
-  allPosts.value.forEach(post => {
-    const year = post.date.getFullYear();
+  allItems.value.forEach(item => {
+    const year = item.date.getFullYear();
     if (!groups[year]) {
       groups[year] = [];
     }
-    groups[year].push(post);
+    groups[year].push(item);
   });
   // 年份倒序
   return Object.keys(groups).sort((a, b) => b - a).map(year => ({
     year,
-    posts: groups[year]
+    items: groups[year]
   }));
 });
 
@@ -47,6 +92,8 @@ const formatDate = (date) => {
 
 // 文章总数
 const postCount = Object.keys(posts).length;
+const thoughtCount = thoughts.length;
+const photoCount = photos.length;
 
 const updateTime = () => {
     now.value = new Date();
@@ -84,13 +131,32 @@ const dayPassedPercent = computed(() => {
     const passed = now.value - startOfDay;
     return (passed / total * 100).toFixed(6);
 });
+
+// 截断文本函数
+const truncate = (text, length = 30) => {
+  if (!text) return '';
+  if (text.length <= length) return text;
+  return text.substring(0, length) + '...';
+}
+
+const getTimeLineColor = (type) => {
+    switch (type) {
+        case 'post': return 'blue';
+        case 'thought': return 'green';
+        case 'quote': return 'purple'; // 摘录用紫色
+        case 'photo': return 'orange'; // 照片用橙色
+        default: return 'gray';
+    }
+}
 </script>
 
 <template>
     <div class="time-wrapper">
         <div class="stats-card">
             <h1 class="title">时间线</h1>
-            <p class="subtitle">共有 {{ postCount }} 篇文章，再接再厉</p>
+            <p class="subtitle">
+                共有 {{ postCount }} 篇文章，{{ thoughtCount }} 个说说，{{ photoCount }} 个定格瞬间，再接再厉
+            </p>
             <div class="divider"></div>
             <div class="stats-info">
                 <p>今天是 {{ currentYear }} 年的第 {{ dayOfYear }} 天</p>
@@ -102,7 +168,7 @@ const dayPassedPercent = computed(() => {
 
         <div class="timeline-container">
             <a-timeline>
-                <template v-for="group in postsByYear" :key="group.year">
+                <template v-for="group in itemsByYear" :key="group.year">
                     <!-- 年份节点 -->
                     <a-timeline-item color="gray">
                         <template #dot>
@@ -111,16 +177,37 @@ const dayPassedPercent = computed(() => {
                         <div class="year-label"></div>
                     </a-timeline-item>
 
-                    <!-- 文章列表 -->
+                    <!-- 列表项 (文章 + 说说 + 摘录 + 照片) -->
                     <a-timeline-item
-                        v-for="post in group.posts"
-                        :key="post.slug"
-                        color="blue"
+                        v-for="item in group.items"
+                        :key="item.id"
+                        :color="getTimeLineColor(item.type)"
                     >
-                        <router-link :to="`/layout/post/${post.slug}`" class="post-link">
-                            <span class="post-date">{{ formatDate(post.date) }}</span>
-                            <span class="post-title">{{ post.title }}</span>
-                        </router-link>
+                        <!-- 所有类型现在都可以点击跳转 -->
+                        <component
+                          :is="item.type === 'post' || item.link ? 'router-link' : 'div'"
+                          :to="item.type === 'post' ? `/layout/post/${item.slug}` : item.link"
+                          class="post-link"
+                          :class="{
+                            'thought-item': item.type === 'thought',
+                            'quote-item': item.type === 'quote',
+                            'photo-item': item.type === 'photo'
+                          }"
+                        >
+                            <span class="post-date">{{ formatDate(item.date) }}</span>
+
+                            <!-- 标题内容 -->
+                            <span class="post-title" :title="item.title">
+                              <!-- 如果是说说，加个图标区分 -->
+                              <span v-if="item.type === 'thought'" class="item-icon">💡</span>
+                              <!-- 如果是摘录 -->
+                              <span v-else-if="item.type === 'quote'" class="item-icon">�</span>
+                              <!-- 如果是照片 -->
+                              <span v-else-if="item.type === 'photo'" class="item-icon">📷</span>
+
+                              {{ ['thought', 'quote'].includes(item.type) ? truncate(item.title, 30) : item.title }}
+                            </span>
+                        </component>
                     </a-timeline-item>
                 </template>
 
@@ -209,6 +296,40 @@ const dayPassedPercent = computed(() => {
     background: rgb(var(--color-bg-secondary));
     transform: translateX(5px);
   }
+}
+
+.thought-item,
+.quote-item,
+.photo-item {
+  cursor: pointer; /* 改为手型，表示可点击 */
+
+  &:hover {
+    /* 恢复背景变色效果，因为现在可以跳转了 */
+    background: rgb(var(--color-bg-secondary));
+    transform: translateX(5px);
+  }
+
+  .post-title {
+    color: rgb(var(--color-text-secondary));
+    /* 说说和摘录用斜体 */
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 600px;
+    display: inline-block;
+    vertical-align: middle;
+  }
+}
+
+/* 照片单独处理，标题不用斜体 */
+.photo-item .post-title {
+  font-style: normal;
+}
+
+.item-icon {
+  margin-right: 5px;
+  font-style: normal;
 }
 
 .post-date {

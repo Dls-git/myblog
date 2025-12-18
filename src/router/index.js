@@ -41,6 +41,21 @@ const router = createRouter({
                     meta: { title: '时间轴' }
                 },
                 {
+                    path: 'thinking', // 完整路径：/layout/thinking
+                    component: () => import('@/views/thinking/ThinkingPage.vue'),
+                    meta: { title: '思考' }
+                },
+                {
+                    path: 'quotes', // 完整路径：/layout/quotes
+                    component: () => import('@/views/quote/QuotePage.vue'),
+                    meta: { title: '摘录' }
+                },
+                {
+                    path: 'gallery', // 完整路径：/layout/gallery
+                    component: () => import('@/views/gallery/GalleryPage.vue'),
+                    meta: { title: '瞬间' }
+                },
+                {
                     path: 'post/:slug', // 完整路径：/layout/post/:slug
                     component: () => import('@/views/post/PostPage.vue'),
                     meta: { title: '文章详情' }

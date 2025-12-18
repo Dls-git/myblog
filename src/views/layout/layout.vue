@@ -1,9 +1,13 @@
 <script setup>
 import myheader from "@/views/layout/myheader.vue";
 import myfooter from "@/views/layout/myfooter.vue";
+import MusicPlayer from "@/components/MusicPlayer.vue";
+import BackToTop from "@/components/BackToTop.vue";
+import ReadingProgress from "@/components/ReadingProgress.vue";
 </script>
 
 <template>
+  <ReadingProgress />
   <div class="global-header">
     <myheader class="site-header"></myheader>
   </div>
@@ -17,9 +21,11 @@ import myfooter from "@/views/layout/myfooter.vue";
       </RouterView>
     </div>
   </div>
-    <myfooter>
-
-    </myfooter>
+  <myfooter></myfooter>
+  
+  <!-- 全局音乐播放器 -->
+  <MusicPlayer />
+  <BackToTop />
 </template>
 
 <style scoped lang="scss">

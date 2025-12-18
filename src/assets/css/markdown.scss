@@ -83,6 +83,38 @@ html {
       radial-gradient(circle at 8% 0%, rgb(var(--color-accent, 37 99 235) / .18), transparent 55%);
     box-shadow: 0 18px 35px rgb(var(--color-bg-root) / .22);
     transition: border-color .25s ease, box-shadow .25s ease, background .25s ease;
+
+    /* Copy Button Styles */
+    &:hover .copy-btn {
+      opacity: 1;
+    }
+  }
+
+  /* Support for pre blocks that might not be in .code-block */
+  pre:hover .copy-btn {
+    opacity: 1;
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+    padding: 4px 8px;
+    font-size: 12px;
+    color: rgb(var(--color-text-primary));
+    background: rgba(var(--color-bg-secondary), 0.8);
+    border: 1px solid rgba(var(--color-border-primary), 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0; /* Initially hidden */
+    transition: all 0.2s;
+    backdrop-filter: blur(4px);
+
+    &:hover {
+      background: rgba(var(--color-bg-secondary), 1);
+      transform: scale(1.05);
+    }
   }
 
   pre.shiki {

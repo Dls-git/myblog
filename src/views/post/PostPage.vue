@@ -3,6 +3,8 @@ import { computed, ref, watch, nextTick, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { posts } from '@/posts'
 import Toc from '@/components/Toc.vue'
+import CommentSection from '@/components/CommentSection.vue'
+import ImageLightbox from '@/components/ImageLightbox.vue'
 import  '@/assets/css/markdown.scss'
 
 
@@ -15,6 +17,10 @@ const slug = computed(() => route.params.slug)
 const post = computed(() => posts[slug.value])
 
 const activeId = ref('')
+const lightboxVisible = ref(false)
+const lightboxSrc = ref('')
+const lightboxAlt = ref('')
+
 let observer = null
 
 function setupObserver() {
@@ -40,10 +46,59 @@ function setupObserver() {
     .forEach(el => observer && observer.observe(el))
 }
 
+function setupEnhancements() {
+  const markdownBody = document.querySelector('.markdown-body')
+  if (!markdownBody) return
+
+  // 1. 图片点击放大
+  const images = markdownBody.querySelectorAll('img')
+  images.forEach(img => {
+    img.style.cursor = 'zoom-in'
+    img.onclick = () => {
+      lightboxSrc.value = img.src
+      lightboxAlt.value = img.alt
+      lightboxVisible.value = true
+    }
+  })
+
+  // 2. 代码块复制按钮
+  const preBlocks = markdownBody.querySelectorAll('pre')
+  preBlocks.forEach(pre => {
+    if (pre.querySelector('.copy-btn')) return
+
+    // 确保 pre 有相对定位，以便按钮绝对定位
+    if (getComputedStyle(pre).position === 'static') {
+      pre.style.position = 'relative'
+    }
+
+    const btn = document.createElement('button')
+    btn.className = 'copy-btn'
+    btn.innerHTML = '📋' // 或者用图标
+    btn.title = 'Copy Code'
+    
+    btn.onclick = (e) => {
+      e.stopPropagation()
+      const code = pre.querySelector('code')?.innerText || pre.innerText
+      navigator.clipboard.writeText(code).then(() => {
+        btn.innerHTML = '✅'
+        setTimeout(() => {
+          btn.innerHTML = '📋'
+        }, 2000)
+      }).catch(err => {
+        console.error('Copy failed', err)
+        btn.innerHTML = '❌'
+      })
+    }
+
+    pre.appendChild(btn)
+  })
+}
+
 watch(post, async p => {
   if (!p) return
   await nextTick()
   setupObserver()
+  setupEnhancements()
 }, { immediate: true })
 
 onUnmounted(() => {
@@ -56,23 +111,29 @@ onUnmounted(() => {
 
 <template>
   <div class="markdown-layout">
-    <!-- 正文 -->
-    <article v-if="post" class="markdown-body">
-      <!-- 文章头部信息 -->
-      <div class="post-header">
-        <h1 class="post-title">{{ post.frontmatter.title }}</h1>
-        <div class="post-meta">
-          <span v-if="post.frontmatter.date">📅 {{ new Date(post.frontmatter.date).toLocaleDateString('zh-CN') }}</span>
-          <span class="divider" v-if="post.frontmatter.date && (post.frontmatter.wordCount || post.frontmatter.readingTime)">|</span>
-          <span v-if="post.frontmatter.wordCount">📝 {{ post.frontmatter.wordCount }}字</span>
-          <span class="divider" v-if="post.frontmatter.wordCount && post.frontmatter.readingTime">|</span>
-          <span v-if="post.frontmatter.readingTime">⏱️ {{ post.frontmatter.readingTime }}分钟</span>
+    <!-- 正文区域包裹 -->
+    <div class="post-wrapper" v-if="post">
+      <!-- 正文 -->
+      <article class="markdown-body">
+        <!-- 文章头部信息 -->
+        <div class="post-header">
+          <h1 class="post-title">{{ post.frontmatter.title }}</h1>
+          <div class="post-meta">
+            <span v-if="post.frontmatter.date">📅 {{ new Date(post.frontmatter.date).toLocaleDateString('zh-CN') }}</span>
+            <span class="divider" v-if="post.frontmatter.date && (post.frontmatter.wordCount || post.frontmatter.readingTime)">|</span>
+            <span v-if="post.frontmatter.wordCount">📝 {{ post.frontmatter.wordCount }}字</span>
+            <span class="divider" v-if="post.frontmatter.wordCount && post.frontmatter.readingTime">|</span>
+            <span v-if="post.frontmatter.readingTime">⏱️ {{ post.frontmatter.readingTime }}分钟</span>
+          </div>
         </div>
-      </div>
-      
-      <!-- Markdown 内容 -->
-      <div v-html="post.html"></div>
-    </article>
+        
+        <!-- Markdown 内容 -->
+        <div v-html="post.html"></div>
+      </article>
+
+      <!-- 评论区 -->
+      <CommentSection />
+    </div>
 
     <!-- 右侧 TOC -->
     <Toc v-if="post" :toc="post.toc" :active-id="activeId" />
@@ -81,6 +142,14 @@ onUnmounted(() => {
     <div v-if="!post">
       <h2>文章不存在</h2>
     </div>
+
+    <!-- 图片查看器 -->
+    <ImageLightbox 
+      :visible="lightboxVisible" 
+      :src="lightboxSrc" 
+      :alt="lightboxAlt"
+      @close="lightboxVisible = false"
+    />
   </div>
 </template>
 
@@ -118,5 +187,11 @@ onUnmounted(() => {
 .divider {
   margin: 0 10px;
   opacity: 0.3;
+}
+
+.post-wrapper {
+  flex: 1;
+  min-width: 0;
+  max-width: 100%;
 }
 </style>

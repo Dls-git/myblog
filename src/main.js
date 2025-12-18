@@ -7,7 +7,7 @@ import {createPinia} from 'pinia'//导入pinia
 import '@/assets/css/global.scss'
 import '@/assets/css/animate.css'
 import '@/assets/css/swup.css'
-import '@/assets/css/newmd.scss'
+import '@/assets/css/theme-vars.scss'
 import 'github-markdown-css/github-markdown.css'
 import '@/assets/css/markdown.scss'
 import Antd from 'ant-design-vue';

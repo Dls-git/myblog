@@ -2,102 +2,14 @@
 import { ref, computed } from 'vue'
 import FriendCard from "@/views/friends/friend-card.vue";
 import FriendApplyModal from "@/views/friends/FriendApplyModal.vue";
+import {friendsList as rawFriendsList} from "@/posts/dataJs/friendList.js";
 
 const showApplyModal = ref(false)
 
+const friendsList = ref(rawFriendsList)
+
 // 示例数据，你可以根据需要修改
-const friendsList = ref([
-  {
-    name: 'GSSD_NrxRobot404',
-    desc: '茉莉花茶我还喜欢',
-    avatar: new URL('../../assets/friendsAvatar/GSSD_NrxRobot404.jpg', import.meta.url).href,
-    link: '#'
-  },
-  {
-    name: 'Lemon &X.',
-    desc: '自由的鸟哪怕身处牢笼也闪烁着自由的光芒',
-    avatar: new URL('../../assets/friendsAvatar/Lemon&X.jpg', import.meta.url).href,
-    link: '#'
-  },
-  {
-    name: 'hsns128',
-    desc: '或选择你的个性签名',
-    avatar: new URL('../../assets/friendsAvatar/hsns128.jpg', import.meta.url).href,
-    link: '#'
-  },
-    {
-      name: "FLCL",
-      desc: "200%",
-      avatar: new URL('../../assets/friendsAvatar/FLCL.jpg', import.meta.url).href,
-      link: "#"
-    },
-    {
-      name: "翁呀跋",
-      desc: "DBAA",
-      avatar: new URL('../../assets/friendsAvatar/wyb.jpg', import.meta.url).href,
-      link: "#"
-    },
-    {
-      name: "Tulmo",
-      desc: "sui!",
-      avatar: new URL('../../assets/friendsAvatar/Tulmo.jpg', import.meta.url).href,
-      link: "#"
-    },
-    {
-      name: "Friend 4",
-      desc: "A cool friend passionate about music.",
-      avatar: "",
-      link: "#"
-    },
-    {
-      name: "Friend 5",
-      desc: "A cool friend who likes cooking.",
-      avatar: "",
-      link: "#"
-    },
-    {
-      name: "Friend 6",
-      desc: "A cool friend into coding.",
-      avatar: "",
-      link: "#"
-    },
-    {
-      name: "Friend 7",
-      desc: "A cool friend who loves traveling.",
-      avatar: "",
-      link: "#"
-    },
-    {
-      name: "Friend 8",
-      desc: "A cool friend passionate about art.",
-      avatar: "",
-      link: "#"
-    },
-    {
-      name: "Friend 9",
-      desc: "A cool friend who likes gaming.",
-      avatar: "",
-      link: "#"
-    },
-    {
-      name: "Friend 10",
-      desc: "A cool friend into fitness.",
-      avatar: "",
-      link: "#"
-    },
-    {
-      name: "Friend 11",
-      desc: "A cool friend who enjoys writing.",
-      avatar: "",
-      link: "#"
-    },
-    {
-      name: "Friend 12",
-      desc: "A cool friend passionate about movies.",
-      avatar: "",
-      link: "#"
-    }
-])
+
 
 // 分页逻辑
 const currentPage = ref(1)

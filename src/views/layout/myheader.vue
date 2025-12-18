@@ -8,6 +8,69 @@ const router = useRouter()
 const isPost = computed(() => route.path.startsWith('/layout/post'))
 const theme = ref('light') // 默认主题改为 light
 
+// 导航菜单配置
+const navItems = [
+  { name: '首页', path: '/', icon: '🏠' },
+  { 
+    name: '文稿', 
+    path: null, 
+    icon: '📂',
+    children: [
+      { name: '手记', path: '/layout/category/Frontend', icon: '📝' },
+      { name: '标签', path: '/layout/tag/Vue', icon: '🏷️' }
+    ]
+  },
+  { name: '时光', path: '/layout/time', icon: '⏳' },
+  { name: '思考', path: '/layout/thinking', icon: '💡' },
+  { name: '更多', path: '/layout/about', icon: '🍩' } // 把关于和友链合并到更多里？用户只说了合并分类和标签。
+  // 用户原话：把导航栏里面的标签和分类和并成分类一个标签。
+  // 那我就只合并这两个。其他的保持原样。
+]
+
+// 修正后的导航配置
+const finalNavItems = [
+  { name: '首页', path: '/', icon: '🏠' },
+  { 
+    name: '分类', 
+    path: null, 
+    icon: '📂',
+    children: [
+      { name: '手记', path: '/layout/category/Frontend', icon: '📚' },
+      { name: '标签', path: '/layout/tag/Vue', icon: '🏷️' }
+    ]
+  },
+  { name: '时间轴', path: '/layout/time', icon: '⏳' },
+  { name: '友链', path: '/layout/friends', icon: '🔗' },
+  { 
+    name: '关于', 
+    path: '/layout/about', // 点击父级跳转
+    icon: '👤',
+    children: [
+      { name: '思考', path: '/layout/thinking', icon: '💡' },
+      { name: '摘录', path: '/layout/quotes', icon: '🔖' },
+      { name: '瞬间', path: '/layout/gallery', icon: '📷' }
+    ]
+  }
+]
+
+// 检查父级菜单是否激活
+const isParentActive = (item) => {
+  if (!item.children) return false
+  
+  // 1. 如果是“分类”菜单，逻辑不变
+  if (item.name === '分类') {
+    return route.path.includes('/category/') || route.path.includes('/tag/')
+  }
+
+  // 2. 如果是“关于”菜单
+  if (item.name === '关于') {
+    // 只要当前路径是 /layout/thinking, /layout/quotes, /layout/gallery 或者是 /layout/about，都算激活
+    return ['/layout/thinking', '/layout/quotes', '/layout/gallery', '/layout/about'].includes(route.path)
+  }
+  
+  return false
+}
+
 // 搜索相关状态
 const isSearchOpen = ref(false)
 const searchQuery = ref('')
@@ -134,12 +197,47 @@ watch(isPost, () => {
     <!-- 导航菜单 -->
     <div class="nav-section">
       <nav class="nav-links">
-        <router-link to="/" class="nav-item" active-class="active">首页</router-link>
-        <router-link to="/layout/category/Frontend" class="nav-item" active-class="active">分类</router-link>
-        <router-link to="/layout/tag/Vue" class="nav-item" active-class="active">标签</router-link>
-        <router-link to="/layout/time" class="nav-item" active-class="active">时间轴</router-link>
-        <router-link to="/layout/friends" class="nav-item" active-class="active">友链</router-link>
-        <router-link to="/layout/about" class="nav-item" active-class="active">关于</router-link>
+        <div 
+          v-for="item in finalNavItems" 
+          :key="item.name" 
+          class="nav-item-wrapper"
+        >
+          <!-- 普通链接 -->
+          <router-link 
+            v-if="!item.children" 
+            :to="item.path" 
+            class="nav-item" 
+            active-class="active"
+          >
+            <span class="nav-icon">{{ item.icon }}</span>
+            {{ item.name }}
+          </router-link>
+
+          <!-- 下拉菜单 (特殊处理：如果是“关于”，父级本身也是可点击的) -->
+          <component
+            v-else
+            :is="item.path ? 'router-link' : 'div'"
+            :to="item.path"
+            class="nav-item dropdown-trigger" 
+            :class="{ active: isParentActive(item) }"
+          >
+            <span class="nav-icon">{{ item.icon }}</span>
+            {{ item.name }}
+            
+            <div class="dropdown-menu">
+              <router-link 
+                v-for="child in item.children" 
+                :key="child.name" 
+                :to="child.path" 
+                class="dropdown-item"
+                active-class="active"
+              >
+                <span class="nav-icon">{{ child.icon }}</span>
+                {{ child.name }}
+              </router-link>
+            </div>
+          </component>
+        </div>
       </nav>
     </div>
 
@@ -269,6 +367,11 @@ watch(isPost, () => {
   padding: 6px;
   border-radius: 99px; /* 胶囊形状 */
   border: 1px solid rgba(var(--color-border-primary), 0.1);
+  overflow: visible; /* 允许下拉菜单溢出 */
+}
+
+.nav-item-wrapper {
+  position: relative;
 }
 
 .nav-item {
@@ -281,6 +384,10 @@ watch(isPost, () => {
   border-radius: 99px;
   transition: all 0.3s ease;
   opacity: 0.8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
 
   &:hover {
     opacity: 1;
@@ -293,6 +400,102 @@ watch(isPost, () => {
     background: #fff;
     color: #000;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    font-weight: 600;
+  }
+}
+
+.nav-icon {
+  display: none; /* 默认隐藏图标 */
+  font-size: 16px;
+}
+
+/* 仅在 hover 或 active 状态下显示图标 */
+.nav-item:hover .nav-icon,
+.nav-item.active .nav-icon,
+.dropdown-item:hover .nav-icon,
+.dropdown-item.active .nav-icon {
+  display: inline-block;
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* 父菜单激活时（子菜单选中），父菜单不显示图标和背景，除非 hover */
+.nav-item.dropdown-trigger.active:not(:hover) {
+  background: transparent;
+  color: rgb(var(--color-text-primary));
+  box-shadow: none;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.nav-item.dropdown-trigger.active:not(:hover) .nav-icon {
+  display: none;
+}
+
+@keyframes popIn {
+  0% { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* 下拉菜单样式 */
+.dropdown-menu {
+  position: absolute;
+  top: 140%; /* 初始位置更靠下，增加动画距离 */
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: rgba(var(--color-bg-primary), 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(var(--color-border-primary), 0.1);
+  border-radius: 12px;
+  padding: 6px;
+  min-width: 140px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 增加一个隐形的连接区域，防止鼠标移到间隙时菜单消失 */
+.dropdown-menu::before {
+  content: '';
+  position: absolute;
+  top: -30px; /* 增加覆盖范围，确保覆盖 margin 区域 */
+  left: 0;
+  width: 100%;
+  height: 30px;
+}
+
+.nav-item-wrapper:hover .dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+  top: 120%; /* 悬停时保留一定间距 (120% 约为 10px 左右的间距) */
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  color: rgb(var(--color-text-primary));
+  text-decoration: none;
+  font-size: 14px;
+  border-radius: 8px;
+  transition: all 0.2s;
+  white-space: nowrap;
+
+  &:hover {
+    background: rgba(var(--color-bg-secondary), 0.8);
+    color: #409eff;
+    transform: translateX(4px); /* 微小的移动反馈 */
+  }
+
+  &.active {
+    background: rgba(var(--color-bg-secondary), 1);
+    color: #409eff;
     font-weight: 600;
   }
 }
