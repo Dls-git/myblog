@@ -16,7 +16,10 @@ wordCount: 4500
 # MyBlog 项目开发文档
 
 ## 1. 项目简介
-
+**网址:https://youthy.site**
+![MyBlog 项目截图](public/myblog.png)
+![MyBlog 项目截图](public/myblog-time.png)
+![MyBlog 项目截图](public/myblog-friends.png)
 **MyBlog** 是一个基于 **Vue 3** 和 **Vite** 构建的现代静态博客系统。它采用了 **"File-as-Database"（文件即数据库）** 的架构思想，无需传统的后端数据库（如 MySQL），所有的文章数据直接来源于项目中的 Markdown 文件。
 
 **核心功能：**
