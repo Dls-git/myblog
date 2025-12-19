@@ -6,7 +6,6 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 // 1. 引入 postcss-px-to-viewport 插件
 import postcssPxToViewport from 'postcss-px-to-viewport'
 import markdownPlugin from './src/markdown/vite-plugin-md.js'
-
 export default defineConfig({
     plugins: [
         vue(),

@@ -12,6 +12,7 @@
     "airbnb-base",
     "plugin:prettier/recommended"
   ],
+
   "parser": "vue-eslint-parser",
   "parserOptions": {
     "ecmaVersion": "latest",
