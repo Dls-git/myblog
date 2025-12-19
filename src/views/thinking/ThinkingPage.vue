@@ -5,14 +5,19 @@ import { thoughts } from '@/posts/dataJs/thoughts.js'
 // 模拟头像引用 (实际开发中可以放在 thoughts 数据里或者统一配置)
 import avatar from '@/assets/img/Mikasa.jpg'
 
+// 1. 先按时间倒序排序
+const sortedThoughts = computed(() => {
+  return [...thoughts].sort((a, b) => new Date(b.date) - new Date(a.date))
+})
+
 // 分页逻辑
 const currentPage = ref(1)
 const pageSize = 10
-const totalPages = computed(() => Math.ceil(thoughts.length / pageSize))
+const totalPages = computed(() => Math.ceil(sortedThoughts.value.length / pageSize))
 
 const displayThoughts = computed(() => {
   const start = (currentPage.value - 1) * pageSize
-  return thoughts.slice(start, start + pageSize)
+  return sortedThoughts.value.slice(start, start + pageSize)
 })
 
 const changePage = (page) => {
