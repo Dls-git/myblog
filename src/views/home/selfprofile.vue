@@ -9,7 +9,7 @@ import EmailModal from '@/components/EmailModal.vue'
 const showEmailModal = ref(false)
 
 const links = [
-  { name: 'Github', icon: githubIcon, color: '#333', url: 'https://github.com' },
+  { name: 'Github', icon: githubIcon, color: '#333', url: 'https://github.com/Dls-git/myblog' },
   { name: 'QQ', icon: qqIcon, color: '#12B7F5', url: 'https://im.qq.com/index.shtml' },
   { name: 'WeChat', icon: wechatIcon, color: '#07C160', url: 'https://weixin.qq.com/' },
   { name: 'Email', icon: mailIcon, color: '#EA4335', action: 'modal' }
