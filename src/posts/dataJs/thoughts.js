@@ -46,5 +46,14 @@ export const thoughts = [
     content: "Merry Christmas! 🎄 希望明年的自己能更好。",
     likes: 5,
     comments: 2
-  }
+  },
+    {
+        id: 7,
+        date: "2025-12-19",
+        week: "星期五",
+        content: "还有五天就要考数字逻辑了，从零开始的生活",
+        likes: 5,
+        comments: 2
+    }
+
 ]
