@@ -56,7 +56,7 @@ const generateTemplate = () => {
 
   // 附加说明
   const comment = inputMode.value === 'file'
-    ? `\n// 注意：请查收邮件附件中的图片，并将其重命名为 ${imageFile.value?.name || 'image.jpg'} 放入 src/assets/friendsAvatar 目录`
+    ? `\n// 注意：请查收邮件附件中的图片，并将其重命名为 ${imageFile.value?.name || 'image.jpg'}`
     : ''
 
   return JSON.stringify(data, null, 2) + comment
