@@ -18,22 +18,22 @@ export const friendsList = [
         link: "/null"
     },
     {
-        "name": "Sejolyn",
-        "desc": "让其如是所示，而非如我所愿。",
-        "link": "https://www.sejolyn.fyi/",
-        "avatar": "https://sejolyn.fyi/avatar.jpg"
+        name: "Sejolyn",
+        desc: "让其如是所示，而非如我所愿。",
+        link: "https://www.sejolyn.fyi/",
+        avatar: "https://sejolyn.fyi/avatar.jpg"
     },
     {
-        "name": "Echo昭",
-        "desc": "铮铮，昂扬",
-        "link": "/null",
-        "avatar": new URL('../../assets/friendsAvatar/echo.jpg', import.meta.url).href
+        name: "Echo昭",
+        desc: "铮铮，昂扬",
+        link: "/null",
+        avatar: new URL('../../assets/friendsAvatar/echo.jpg', import.meta.url).href
     },
     {
-        "name": "SORA",
-        "desc": "陆止于此，海始于斯",
-        "link": "/null",
-        "avatar": new URL('../../assets/friendsAvatar/sora.jpg', import.meta.url).href
+        name: "SORA",
+        desc: "陆止于此，海始于斯",
+        link: "/null",
+        avatar: new URL('../../assets/friendsAvatar/sora.jpg', import.meta.url).href
     },
     {
         name: 'hsns128',
