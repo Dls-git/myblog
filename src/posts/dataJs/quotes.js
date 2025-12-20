@@ -47,5 +47,5 @@ export const quotes = [
         author: "轶名",
         source: "《大明风华》",
         date: "2025-12-20"
-    }a
+    }
 ]
