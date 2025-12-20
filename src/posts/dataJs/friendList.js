@@ -30,6 +30,12 @@ export const friendsList = [
         "avatar": new URL('../../assets/friendsAvatar/echo.jpg', import.meta.url).href
     },
     {
+        "name": "SORA",
+        "desc": "陆止于此，海始于斯",
+        "link": "null",
+        "avatar": new URL('../../assets/friendsAvatar/sora.jpg', import.meta.url).href
+    },
+    {
         name: 'hsns128',
         desc: '或选择你的个性签名',
         avatar: new URL('../../assets/friendsAvatar/hsns128.jpg', import.meta.url).href,
