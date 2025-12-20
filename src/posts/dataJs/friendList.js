@@ -18,6 +18,12 @@ export const friendsList = [
         link: '#'
     },
     {
+        "name": "Sejolyn",
+        "desc": "让其如是所示，而非如我所愿。",
+        "link": "https://www.sejolyn.fyi/",
+        "avatar": "https://sejolyn.fyi/avatar.jpg"
+    },
+    {
         name: 'hsns128',
         desc: '或选择你的个性签名',
         avatar: new URL('../../assets/friendsAvatar/hsns128.jpg', import.meta.url).href,
