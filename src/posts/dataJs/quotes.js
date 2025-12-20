@@ -40,5 +40,12 @@ export const quotes = [
     author: "蒋捷",
     source: "《虞美人-听雨》",
     date: "2025-12-18"
-  }
+  },
+    {
+        id:7 ,
+        content: "光阴如骏马加鞭，日月如落花流水",
+        author: "轶名",
+        source: "《大明风华》",
+        date: "2025-12-20"
+    }a
 ]
