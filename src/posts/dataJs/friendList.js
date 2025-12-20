@@ -32,7 +32,7 @@ export const friendsList = [
     {
         "name": "SORA",
         "desc": "陆止于此，海始于斯",
-        "link": "null",
+        "link": "/null",
         "avatar": new URL('../../assets/friendsAvatar/sora.jpg', import.meta.url).href
     },
     {
