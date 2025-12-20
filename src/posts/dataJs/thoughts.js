@@ -54,6 +54,14 @@ export const thoughts = [
         content: "还有五天就要考数字逻辑了，从零开始的生活",
         likes: 5,
         comments: 2
-    }
+    },
+{
+    id: 8,
+        date: "2025-12-20",
+    week: "星期六",
+    content: "数字逻辑考试太简单了，一天绰绰有余",
+    likes: 5,
+    comments: 2
+}
 
 ]
