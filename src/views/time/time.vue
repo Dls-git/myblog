@@ -6,7 +6,7 @@ import { posts } from '@/posts';
 import { thoughts } from '@/posts/dataJs/thoughts.js';
 import { quotes } from '@/posts/dataJs/quotes.js';
 import { photos } from '@/posts/dataJs/photos.js';
-import { qaList } from '@/assets/gallery/aboutData.js';
+import { qaList } from '@/posts/dataJs/aboutData.js';
 
 const now = ref(new Date());
 let timer = null;
