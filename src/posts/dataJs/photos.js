@@ -35,7 +35,7 @@ export const photos = [
         id: 5,
         url: new URL('../../assets/gallery/young.jpg', import.meta.url).href,
         title: "很久以前",
-        date: "2025-03-14",
+        date: "2017-xx-xx",
         description: "Old times",
         category: "Memory"
     },
