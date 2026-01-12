@@ -9,8 +9,8 @@ export const qaList = [
     detail: {
       intro: "热衷于探索前沿前端技术，喜欢折腾各种新奇的 UI 效果。不仅仅是写代码，更想创造令人愉悦的交互体验。",
       experiences: [
-        { year: '2023', event: '开始接触 Vue 3 生态' },
-        { year: '2024', event: '独立开发个人博客' },
+        { year: '2025', event: '开始接触 Vue 3 生态' },
+        { year: '2025-12', event: '独立开发个人博客' },
         { year: 'Now', event: '正在寻找更多可能性' }
       ]
     }
