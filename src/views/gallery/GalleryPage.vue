@@ -8,6 +8,17 @@ const lightboxVisible = ref(false)
 const currentImage = ref('')
 const currentAlt = ref('')
 
+// 分类过滤
+const categories = ['All', ...new Set(photos.map(p => p.category).filter(Boolean))]
+const activeCategory = ref('All')
+
+const filteredPhotos = computed(() => {
+  if (activeCategory.value === 'All') {
+    return photos
+  }
+  return photos.filter(photo => photo.category === activeCategory.value)
+})
+
 // 打开灯箱
 const openLightbox = (photo) => {
   currentImage.value = photo.url
@@ -15,58 +26,79 @@ const openLightbox = (photo) => {
   lightboxVisible.value = true
 }
 
-// 瀑布流布局模拟（简单的两列或三列布局）
-// 这里的简单实现是将数组分为两半，分别渲染在左右两列
-// 更复杂的实现可能需要计算图片高度，这里为了简化直接均分
-const leftColumn = computed(() => photos.filter((_, i) => i % 2 === 0))
-const rightColumn = computed(() => photos.filter((_, i) => i % 2 !== 0))
+const setCategory = (cat) => {
+  activeCategory.value = cat
+}
 
+// 统计数据
+const stats = computed(() => [
+  { label: 'Total Photos', value: photos.length },
+  { label: 'Categories', value: categories.length - 1 },
+  { label: 'Years', value: new Set(photos.map(p => p.date.split('-')[0])).size }
+])
 </script>
 
 <template>
   <div class="gallery-page">
-    <div class="header-section">
-      <h1 class="page-title">
-        瞬间 <span class="icon">📷</span>
-      </h1>
-      <p class="subtitle">定格美好的时光</p>
-    </div>
+    <div class="content-container">
+      <div class="header-simple">
+        <h1 class="page-title">Gallery</h1>
+        <div class="title-line"></div>
+        <p class="page-subtitle">A collection of moments</p>
+      </div>
 
-    <div class="gallery-container">
-      <!-- 左列 -->
-      <div class="gallery-column">
+      <!-- Info Bar -->
+      <div class="info-bar">
+        <div class="stat-item" v-for="stat in stats" :key="stat.label">
+          <span class="stat-value">{{ stat.value }}</span>
+          <span class="stat-label">{{ stat.label }}</span>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-wrapper">
+        <div class="filter-bar">
+          <button 
+            v-for="cat in categories" 
+            :key="cat"
+            class="filter-btn"
+            :class="{ active: activeCategory === cat }"
+            @click="setCategory(cat)"
+          >
+            {{ cat }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Masonry Grid -->
+      <div class="gallery-masonry">
         <div
-          v-for="photo in leftColumn"
+          v-for="(photo, index) in filteredPhotos"
           :key="photo.id"
           class="photo-card"
           @click="openLightbox(photo)"
+          :style="{ animationDelay: `${index * 0.05}s` }"
         >
-          <img :src="photo.url" :alt="photo.title" loading="lazy">
-          <div class="photo-overlay">
-            <div class="photo-info">
-              <h3>{{ photo.title }}</h3>
-              <p>{{ photo.date }}</p>
+          <div class="image-wrapper">
+            <img :src="photo.url" :alt="photo.title" loading="lazy">
+            <div class="photo-overlay">
+              <div class="overlay-content">
+                <div class="badge-wrapper">
+                   <span class="category-badge" v-if="photo.category">{{ photo.category }}</span>
+                </div>
+                <h3 class="photo-title">{{ photo.title }}</h3>
+                <div class="photo-meta">
+                  <span class="date">{{ photo.date }}</span>
+                  <span class="desc" v-if="photo.description">{{ photo.description }}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-
-      <!-- 右列 -->
-      <div class="gallery-column">
-        <div
-          v-for="photo in rightColumn"
-          :key="photo.id"
-          class="photo-card"
-          @click="openLightbox(photo)"
-        >
-          <img :src="photo.url" :alt="photo.title" loading="lazy">
-          <div class="photo-overlay">
-            <div class="photo-info">
-              <h3>{{ photo.title }}</h3>
-              <p>{{ photo.date }}</p>
-            </div>
-          </div>
-        </div>
+      
+      <div class="gallery-footer">
+        <div class="end-mark">■</div>
       </div>
     </div>
 
@@ -82,72 +114,161 @@ const rightColumn = computed(() => photos.filter((_, i) => i % 2 !== 0))
 
 <style scoped lang="scss">
 .gallery-page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 40px 20px;
-  min-height: 80vh;
+  min-height: 100vh;
+  background-color: rgb(var(--color-bg-root));
+  color: rgb(var(--color-text-primary));
+  padding-top: 100px;
 }
 
-.header-section {
+.header-simple {
   text-align: center;
   margin-bottom: 60px;
+  animation: fadeUp 0.8s ease-out;
 
   .page-title {
-    font-size: 36px;
+    font-size: 3.5rem;
     font-weight: 800;
-    margin-bottom: 10px;
-    color: rgb(var(--color-text-primary));
+    margin: 0;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
 
-    .icon {
-      font-size: 30px;
+  .title-line {
+    width: 60px;
+    height: 4px;
+    background-color: rgb(var(--color-accent));
+    margin: 20px auto;
+  }
+
+  .page-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.6;
+    font-weight: 300;
+  }
+}
+
+.content-container {
+  max-width: 1600px; /* Wider layout */
+  margin: 0 auto;
+  padding: 0 40px 60px;
+  position: relative;
+  z-index: 3;
+}
+
+/* Info Bar */
+.info-bar {
+  display: flex;
+  justify-content: center;
+  gap: 60px;
+  margin-bottom: 60px;
+  padding-bottom: 40px;
+  border-bottom: 1px solid rgba(var(--color-text-primary), 0.1);
+  
+  .stat-item {
+    text-align: center;
+    
+    .stat-value {
+      display: block;
+      font-size: 2rem;
+      font-weight: 700;
+      color: rgb(var(--color-accent));
+      line-height: 1;
+      margin-bottom: 5px;
+    }
+    
+    .stat-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.6;
     }
   }
+}
 
-  .subtitle {
-    font-size: 18px;
-    color: rgb(var(--color-text-primary));
-    opacity: 0.6;
-    letter-spacing: 1px;
+/* Filter Bar */
+.filter-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 60px;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 5px;
+  background: rgba(var(--color-text-primary), 0.05);
+  border-radius: 40px;
+}
+
+.filter-btn {
+  padding: 10px 24px;
+  border-radius: 30px;
+  border: none;
+  background: transparent;
+  color: rgb(var(--color-text-primary));
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  font-weight: 600;
+  
+  &:hover {
+    color: rgb(var(--color-accent));
+  }
+  
+  &.active {
+    background: rgb(var(--color-accent));
+    color: white;
+    box-shadow: 0 4px 15px rgba(var(--color-accent), 0.3);
   }
 }
 
-.gallery-container {
-  display: flex;
-  gap: 20px;
-}
-
-.gallery-column {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+/* 纯CSS瀑布流布局 */
+.gallery-masonry {
+  column-count: 3;
+  column-gap: 40px; /* Wider gap */
+  
+  @media (max-width: 1200px) {
+    column-count: 2;
+  }
+  
+  @media (max-width: 640px) {
+    column-count: 1;
+  }
 }
 
 .photo-card {
-  position: relative;
-  border-radius: 16px;
-  overflow: hidden;
+  break-inside: avoid;
+  margin-bottom: 40px;
   cursor: zoom-in;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-  transition: transform 0.3s ease;
+  animation: fadeUp 0.8s ease backwards;
+  
+  &:hover {
+    .image-wrapper {
+      transform: translateY(-8px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      
+      .photo-overlay {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  }
+}
 
+.image-wrapper {
+  position: relative;
+  border-radius: 0; /* Sharp corners for modern look */
+  overflow: hidden;
+  background: rgba(var(--color-bg-primary), 0.5);
+  transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+  
   img {
     width: 100%;
     height: auto;
     display: block;
-    transition: transform 0.5s ease;
-  }
-
-  &:hover {
-    transform: translateY(-5px);
-
-    img {
-      transform: scale(1.05);
-    }
-
-    .photo-overlay {
-      opacity: 1;
-    }
+    transition: transform 0.8s cubic-bezier(0.19, 1, 0.22, 1);
   }
 }
 
@@ -156,30 +277,89 @@ const rightColumn = computed(() => photos.filter((_, i) => i % 2 !== 0))
   bottom: 0;
   left: 0;
   width: 100%;
-  padding: 20px;
-  background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
-  color: white;
+  background-color: rgba(255, 255, 255, 0.95); /* Ensure high contrast background */
+  padding: 25px;
   opacity: 0;
-  transition: opacity 0.3s ease;
-
-  .photo-info {
-    h3 {
-      margin: 0 0 5px 0;
-      font-size: 18px;
-      font-weight: 600;
-    }
-
-    p {
-      margin: 0;
-      font-size: 12px;
-      opacity: 0.8;
-    }
+  transform: translateY(20px);
+  transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+  border-top: 4px solid rgb(var(--color-accent)); /* Thicker accent border */
+  
+  .overlay-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
 }
 
+.badge-wrapper {
+  margin-bottom: 5px;
+}
+
+.category-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  color: white;
+  background-color: rgb(var(--color-accent));
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.photo-title {
+  color: #333; /* Dark text for clarity */
+  font-size: 1.3rem;
+  font-weight: 800;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.photo-meta {
+  color: #666; /* Darker secondary text */
+  font-size: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  
+  .date {
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: rgb(var(--color-accent));
+    font-weight: 600;
+  }
+  
+  .desc {
+    font-style: italic;
+  }
+}
+
+.gallery-footer {
+  text-align: center;
+  margin-top: 80px;
+  opacity: 0.3;
+  
+  .end-mark {
+    font-size: 1.5rem;
+    color: rgb(var(--color-accent));
+  }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @media (max-width: 768px) {
-  .gallery-container {
-    flex-direction: column;
+  .info-bar {
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .content-container {
+    padding: 40px 20px;
+  }
+  .header-simple .page-title {
+    font-size: 2.5rem;
   }
 }
 </style>

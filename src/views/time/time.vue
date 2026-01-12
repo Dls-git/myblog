@@ -6,6 +6,7 @@ import { posts } from '@/posts';
 import { thoughts } from '@/posts/dataJs/thoughts.js';
 import { quotes } from '@/posts/dataJs/quotes.js';
 import { photos } from '@/posts/dataJs/photos.js';
+import { qaList } from '@/assets/gallery/aboutData.js';
 
 const now = ref(new Date());
 let timer = null;
@@ -62,8 +63,20 @@ const allItems = computed(() => {
     };
   });
 
-  // 5. 合并并排序
-  return [...postItems, ...thoughtItems, ...quoteItems, ...photoItems].sort((a, b) => b.date - a.date);
+  // 5. 处理关于 (about)
+  const aboutItems = qaList.map(qa => {
+    return {
+      type: 'about',
+      id: `about-${qa.id}`,
+      title: qa.question, // 标题即问题
+      date: new Date('2024-01-01'), // 默认给一个固定时间，或者当前时间
+      description: qa.answer,
+      link: '/layout/about' // 跳转到关于页
+    };
+  });
+
+  // 6. 合并并排序
+  return [...postItems, ...thoughtItems, ...quoteItems, ...photoItems, ...aboutItems].sort((a, b) => b.date - a.date);
 });
 
 // 按年份分组
@@ -145,6 +158,7 @@ const getTimeLineColor = (type) => {
         case 'thought': return 'green';
         case 'quote': return 'purple'; // 摘录用紫色
         case 'photo': return 'orange'; // 照片用橙色
+        case 'about': return 'cyan'; // 关于用青色
         default: return 'gray';
     }
 }
@@ -155,7 +169,7 @@ const getTimeLineColor = (type) => {
         <div class="stats-card">
             <h1 class="title">时间线</h1>
             <p class="subtitle">
-                共有 {{ postCount }} 篇文章，{{ thoughtCount }} 个说说，{{ photoCount }} 个定格瞬间，再接再厉
+                共有 {{ postCount }} 篇文章，{{ thoughtCount }} 个说说，{{ photoCount }} 个定格瞬间，{{ aboutCount }} 个关于，再接再厉
             </p>
             <div class="divider"></div>
             <div class="stats-info">
@@ -191,7 +205,8 @@ const getTimeLineColor = (type) => {
                           :class="{
                             'thought-item': item.type === 'thought',
                             'quote-item': item.type === 'quote',
-                            'photo-item': item.type === 'photo'
+                            'photo-item': item.type === 'photo',
+                            'about-item': item.type === 'about'
                           }"
                         >
                             <span class="post-date">{{ formatDate(item.date) }}</span>
@@ -323,7 +338,8 @@ const getTimeLineColor = (type) => {
 }
 
 /* 照片单独处理，标题不用斜体 */
-.photo-item .post-title {
+.photo-item .post-title,
+.about-item .post-title {
   font-style: normal;
 }
 
