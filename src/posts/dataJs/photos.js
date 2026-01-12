@@ -89,7 +89,7 @@ export const photos = [
     },
      {
         id: 12,
-        url: new URL('../../assets/gallery/twopeo.jpg', import.meta.url).href,
+        url: new URL('../../assets/gallery/twoPeo.jpg', import.meta.url).href,
         title: "要放假了",
         date: "2026-01-0x",
         description: "Two people",
