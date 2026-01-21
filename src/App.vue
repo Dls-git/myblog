@@ -33,12 +33,14 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-* {
+:global(html, body, #app) {
   height: 100%;
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
 
+:global(*, *::before, *::after) {
+  box-sizing: border-box;
 }
 </style>

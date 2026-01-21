@@ -68,6 +68,10 @@ const closeCard = () => {
                   <span v-for="s in item.skills.slice(0, 3)" :key="s">{{ s }}</span>
                   <span v-if="item.skills.length > 3">...</span>
                 </div>
+                <div v-else-if="item.type === 'hobbies'" class="preview-skills">
+                  <span v-for="h in (item.detail?.list || []).slice(0, 3)" :key="h.name">{{ h.icon }}</span>
+                  <span v-if="(item.detail?.list || []).length > 3">...</span>
+                </div>
                 <div v-else-if="item.type === 'social'" class="preview-social">
                    <img src="@/assets/img/github.png" alt="icon" />
                    <img src="@/assets/img/mail.png" alt="icon" />
@@ -148,7 +152,7 @@ const closeCard = () => {
             </div>
 
             <!-- Hobbies Detail -->
-            <div v-else-if="activeCard.id === 'hobbies'" class="detail-hobbies">
+            <div v-else-if="activeCard.type === 'hobbies'" class="detail-hobbies">
               <div class="hobby-grid">
                 <div v-for="hobby in activeCard.detail.list" :key="hobby.name" class="hobby-item">
                   <span class="hobby-icon">{{ hobby.icon }}</span>

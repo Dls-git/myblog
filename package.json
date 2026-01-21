@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "admin": "node local-cms/server.js",
     "build": "vite build",
     "preview": "vite preview"
   },
