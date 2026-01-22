@@ -115,6 +115,42 @@ function estimateReadingTimeMinutes(wordCount) {
     return Math.max(1, Math.ceil(wc / 400));
 }
 
+// 辅助函数：复制目录
+function copyDir(src, dest) {
+    if (!fs.existsSync(dest)) {
+        fs.mkdirSync(dest, { recursive: true });
+    }
+    
+    const entries = fs.readdirSync(src, { withFileTypes: true });
+    for (const entry of entries) {
+        const srcPath = path.join(src, entry.name);
+        const destPath = path.join(dest, entry.name);
+        
+        if (entry.isDirectory()) {
+            copyDir(srcPath, destPath);
+        } else {
+            fs.copyFileSync(srcPath, destPath);
+        }
+    }
+}
+
+// 辅助函数：统计文件数量
+function countFiles(dir) {
+    let count = 0;
+    
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+        const entryPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+            count += countFiles(entryPath);
+        } else {
+            count++;
+        }
+    }
+    
+    return count;
+}
+
 // 辅助函数：解析 JS 数据文件
 function parseJsDataFile(content) {
     // 1. 尝试提取数组内容 [ ... ]
@@ -701,6 +737,123 @@ ${data.content}`;
         archive.file(path.join(__dirname, '../index.html'), { name: 'index.html' });
 
         archive.finalize();
+        return;
+    }
+
+    // 4.9 系统恢复 API (上传 ZIP)
+    if (parsedUrl.pathname === '/api/system/restore' && req.method === 'POST') {
+        const tempDir = path.join(__dirname, `../tmp/restore-${Date.now()}`);
+        const uploadPath = path.join(tempDir, 'backup.zip');
+        
+        try {
+            // 确保临时目录存在
+            fs.mkdirSync(tempDir, { recursive: true });
+            
+            // 保存上传的文件
+            const writeStream = fs.createWriteStream(uploadPath);
+            req.pipe(writeStream);
+            
+            writeStream.on('finish', async () => {
+                try {
+                    // 解压 ZIP 文件
+                    const extractDir = path.join(tempDir, 'extract');
+                    fs.mkdirSync(extractDir, { recursive: true });
+                    
+                    const archive = archiver('zip', { zlib: { level: 9 } });
+                    // 使用 adm-zip 解压
+                    const AdmZip = (await import('adm-zip')).default;
+                    const zip = new AdmZip(uploadPath);
+                    zip.extractAllTo(extractDir, true);
+                    
+                    // 恢复核心内容
+                    const restoreStats = {
+                        posts: 0,
+                        data: 0,
+                        uploads: 0,
+                        assets: 0,
+                        config: 0
+                    };
+                    
+                    // 1. 恢复文章内容
+                    const extractedPostsDir = path.join(extractDir, 'content/posts');
+                    if (fs.existsSync(extractedPostsDir)) {
+                        // 清空现有文章目录
+                        fs.rmSync(POSTS_DIR, { recursive: true, force: true });
+                        fs.mkdirSync(POSTS_DIR, { recursive: true });
+                        // 复制恢复的文章
+                        copyDir(extractedPostsDir, POSTS_DIR);
+                        restoreStats.posts = countFiles(POSTS_DIR);
+                    }
+                    
+                    // 2. 恢复数据文件
+                    const extractedDataDir = path.join(extractDir, 'content/data');
+                    if (fs.existsSync(extractedDataDir)) {
+                        // 清空现有数据目录
+                        fs.rmSync(DATA_JS_DIR, { recursive: true, force: true });
+                        fs.mkdirSync(DATA_JS_DIR, { recursive: true });
+                        // 复制恢复的数据文件
+                        copyDir(extractedDataDir, DATA_JS_DIR);
+                        restoreStats.data = countFiles(DATA_JS_DIR);
+                    }
+                    
+                    // 3. 恢复上传文件
+                    const extractedUploadsDir = path.join(extractDir, 'public/uploads');
+                    if (fs.existsSync(extractedUploadsDir)) {
+                        // 清空现有上传目录
+                        fs.rmSync(UPLOADS_DIR, { recursive: true, force: true });
+                        fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+                        // 复制恢复的上传文件
+                        copyDir(extractedUploadsDir, UPLOADS_DIR);
+                        restoreStats.uploads = countFiles(UPLOADS_DIR);
+                    }
+                    
+                    // 4. 恢复静态资源
+                    const extractedAssetsDir = path.join(extractDir, 'src/assets');
+                    if (fs.existsSync(extractedAssetsDir)) {
+                        // 清空现有资源目录
+                        fs.rmSync(ASSETS_DIR, { recursive: true, force: true });
+                        fs.mkdirSync(ASSETS_DIR, { recursive: true });
+                        // 复制恢复的资源文件
+                        copyDir(extractedAssetsDir, ASSETS_DIR);
+                        restoreStats.assets = countFiles(ASSETS_DIR);
+                    }
+                    
+                    // 5. 恢复配置文件
+                    const configFiles = ['package.json', 'vite.config.js', 'index.html'];
+                    configFiles.forEach(file => {
+                        const extractedConfig = path.join(extractDir, file);
+                        if (fs.existsSync(extractedConfig)) {
+                            fs.copyFileSync(extractedConfig, path.join(__dirname, `../${file}`));
+                            restoreStats.config++;
+                        }
+                    });
+                    
+                    // 清理临时文件
+                    fs.rmSync(tempDir, { recursive: true, force: true });
+                    
+                    // 返回恢复结果
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({
+                        success: true,
+                        message: '恢复成功',
+                        stats: restoreStats
+                    }));
+                } catch (err) {
+                    fs.rmSync(tempDir, { recursive: true, force: true });
+                    throw err;
+                }
+            });
+            
+            writeStream.on('error', (err) => {
+                fs.rmSync(tempDir, { recursive: true, force: true });
+                throw err;
+            });
+        } catch (err) {
+            fs.rmSync(tempDir, { recursive: true, force: true });
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, message: err.message }));
+        }
+        
         return;
     }
 
