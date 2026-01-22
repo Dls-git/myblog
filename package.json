@@ -8,7 +8,8 @@
   },
   "scripts": {
     "dev": "vite",
-    "admin": "node local-cms/server.js",
+    "server": "node local-cms/server.js",
+    "admin": "concurrently \"npm run server\" \"npm run dev\"",
     "build": "vite build",
     "preview": "vite preview"
   },
@@ -41,6 +42,7 @@
     "@typescript-eslint/parser": "^8.49.0",
     "@vitejs/plugin-vue": "^6.0.2",
     "autoprefixer": "^10.4.22",
+    "concurrently": "^9.2.1",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
