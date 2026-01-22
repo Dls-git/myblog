@@ -697,7 +697,20 @@ ${data.content}`;
                 if (!hash) throw new Error('Commit hash is required');
                 
                 console.log(`\n🔙 正在执行回滚到: ${hash}...`);
-                // 强制重置到指定提交
+                
+                // 1. 在回滚前先创建一个临时提交，防止丢失当前未提交的修改
+                try {
+                    await execPromise('git add .');
+                    const status = await execPromise('git status --porcelain');
+                    if (status.stdout.trim()) {
+                        await execPromise(`git commit -m "Auto-snapshot before rollback to ${hash.substring(0, 7)}"`);
+                        console.log('-> 已自动保存当前更改到新提交');
+                    }
+                } catch (err) {
+                    console.log('-> 跳过自动保存 (可能没有更改或已在最新提交)');
+                }
+
+                // 2. 强制重置到指定提交
                 await execPromise(`git reset --hard ${hash}`);
                 
                 res.writeHead(200, { 'Content-Type': 'application/json' });
