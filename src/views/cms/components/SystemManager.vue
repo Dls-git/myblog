@@ -60,7 +60,7 @@ const rollback = async (hash) => {
 }
 
 const downloadBackup = () => {
-  window.open(`${apiUrl}/api/system/backup`, '_blank')
+  window.open(apiUrl('/api/system/backup'), '_blank')
 }
 
 onMounted(fetchHistory)

@@ -691,8 +691,14 @@ ${data.content}`;
 
         // 备份核心内容
         if (fs.existsSync(POSTS_DIR)) archive.directory(POSTS_DIR, 'content/posts');
-        if (fs.existsSync(DATA_DIR)) archive.directory(DATA_DIR, 'content/data');
+        if (fs.existsSync(DATA_JS_DIR)) archive.directory(DATA_JS_DIR, 'content/data');
         if (fs.existsSync(UPLOADS_DIR)) archive.directory(UPLOADS_DIR, 'public/uploads');
+        if (fs.existsSync(ASSETS_DIR)) archive.directory(ASSETS_DIR, 'src/assets');
+        
+        // 备份配置文件
+        archive.file(path.join(__dirname, '../package.json'), { name: 'package.json' });
+        archive.file(path.join(__dirname, '../vite.config.js'), { name: 'vite.config.js' });
+        archive.file(path.join(__dirname, '../index.html'), { name: 'index.html' });
 
         archive.finalize();
         return;
