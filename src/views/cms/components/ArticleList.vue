@@ -1,7 +1,8 @@
 
 <script setup>
 import { computed } from 'vue'
-import { EditOutlined, DeleteOutlined } from '@ant-design/icons-vue'
+import { EditOutlined, DeleteOutlined, HolderOutlined } from '@ant-design/icons-vue'
+import draggable from 'vuedraggable'
 
 const props = defineProps({
   filteredPosts: {
@@ -11,11 +12,16 @@ const props = defineProps({
   query: String
 })
 
-const emit = defineEmits(['update:query', 'openPost', 'deletePost', 'createNewArticle'])
+const emit = defineEmits(['update:query', 'openPost', 'deletePost', 'createNewArticle', 'update:filteredPosts'])
 
 const localQuery = computed({
   get: () => props.query,
   set: (val) => emit('update:query', val)
+})
+
+const localList = computed({
+  get: () => props.filteredPosts,
+  set: (val) => emit('update:filteredPosts', val)
 })
 
 const formatDate = (date) => {
@@ -35,33 +41,49 @@ const formatDate = (date) => {
       </button>
     </div>
     <div class="card-container" v-if="filteredPosts.length">
-      <div v-for="p in filteredPosts" :key="p.slug" class="post-card">
-        <div class="post-card-content" @click="emit('openPost', p.slug)">
-          <h2 class="post-card-title">{{ p.title }}</h2>
-          <p v-if="p.description" class="post-card-desc">{{ p.description }}</p>
-          <div class="post-card-footer">
-            <div class="post-card-meta">
-              <span v-if="p.date">📅 {{ formatDate(p.date) }}</span>
-              <span class="divider" v-if="p.category">|</span>
-              <span v-if="p.category">📁 {{ p.category }}</span>
-              <span class="divider" v-if="p.tags && p.tags.length">|</span>
-              <span v-if="p.tags && p.tags.length">🏷️ {{ p.tags.join(', ') }}</span>
-            </div>
-            <div class="post-card-actions">
-              <div class="continue-link">编辑文章 -></div>
-              <button class="delete-btn" @click.stop="emit('deletePost', p.slug)" title="删除文章">
-                <DeleteOutlined />
-              </button>
+      <draggable
+        v-model="localList"
+        class="article-list-drag"
+        item-key="slug"
+        handle=".drag-handle"
+        :animation="300"
+        :disabled="Boolean(query && String(query).trim())"
+        ghost-class="ghost-card"
+      >
+        <template #item="{ element: p }">
+          <div class="post-card">
+            <div class="post-card-content" @click="emit('openPost', p.slug)">
+              <h2 class="post-card-title">{{ p.title }}</h2>
+              <p v-if="p.description" class="post-card-desc">{{ p.description }}</p>
+              <div class="post-card-footer">
+                <div class="post-card-meta">
+                  <span v-if="p.date">📅 {{ formatDate(p.date) }}</span>
+                  <span class="divider" v-if="p.category">|</span>
+                  <span v-if="p.category">📁 {{ p.category }}</span>
+                  <span class="divider" v-if="p.tags && p.tags.length">|</span>
+                  <span v-if="p.tags && p.tags.length">🏷️ {{ p.tags.join(', ') }}</span>
+                </div>
+                <div class="post-card-actions">
+                  <div class="drag-handle" title="拖拽排序" @click.stop>
+                    <HolderOutlined />
+                  </div>
+                  <div class="continue-link">编辑文章 -></div>
+                  <button class="delete-btn" @click.stop="emit('deletePost', p.slug)" title="删除文章">
+                    <DeleteOutlined />
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </template>
+      </draggable>
     </div>
     <div v-else class="empty">暂无文章</div>
   </div>
 </template>
 
 <style scoped lang="scss">
+/* ... existing styles ... */
 .article-manager-view {
   display: flex;
   flex-direction: column;
@@ -93,10 +115,15 @@ const formatDate = (date) => {
   padding-bottom: 20px;
 }
 
+.article-list-drag {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 .post-card {
   background: rgb(var(--color-bg-primary));
   border-radius: 20px;
-  margin-bottom: 20px;
   border: 1px solid rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
   cursor: pointer;
@@ -189,6 +216,28 @@ const formatDate = (date) => {
     opacity: 1;
     transform: scale(1.1);
   }
+}
+
+.drag-handle {
+  cursor: grab;
+  color: rgb(var(--color-text-secondary));
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  
+  &:active {
+    cursor: grabbing;
+  }
+  
+  &:hover {
+    color: rgb(var(--color-text-primary));
+  }
+}
+
+.ghost-card {
+  opacity: 0.5;
+  background: rgb(var(--color-bg-secondary)) !important;
+  border: 2px dashed rgb(var(--color-accent)) !important;
 }
 
 .empty {

@@ -20,6 +20,7 @@ import PhotoManager from './components/PhotoManager.vue'
 import QuoteManager from './components/QuoteManager.vue'
 import ThoughtManager from './components/ThoughtManager.vue'
 import AboutManager from './components/AboutManager.vue'
+import FriendCard from '../friends/friend-card.vue'
 
 // Import Utils & Constants
 import { 
@@ -121,16 +122,118 @@ const filteredPosts = computed(() => {
   )
 })
 
+const POST_ORDER_LS_KEY = 'cms_post_order_v1'
+
+const readLocalPostOrder = () => {
+  try {
+    const raw = localStorage.getItem(POST_ORDER_LS_KEY)
+    const parsed = JSON.parse(raw || '[]')
+    if (!Array.isArray(parsed)) return []
+    return parsed.map((s) => String(s || '').trim()).filter(Boolean)
+  } catch {
+    return []
+  }
+}
+
+const writeLocalPostOrder = (order) => {
+  try {
+    localStorage.setItem(POST_ORDER_LS_KEY, JSON.stringify(order))
+    return true
+  } catch {
+    return false
+  }
+}
+
+const clearLocalPostOrder = () => {
+  try {
+    localStorage.removeItem(POST_ORDER_LS_KEY)
+  } catch {
+  }
+}
+
+const applyPostOrder = (list, order) => {
+  const arr = Array.isArray(list) ? [...list] : []
+  const ord = Array.isArray(order) ? order : []
+  if (!ord.length) return arr
+
+  const orderIndex = new Map()
+  ord.forEach((slug, idx) => {
+    if (!orderIndex.has(slug)) orderIndex.set(slug, idx)
+  })
+
+  return arr.sort((a, b) => {
+    const as = String(a?.slug || '')
+    const bs = String(b?.slug || '')
+    const ai = orderIndex.has(as) ? orderIndex.get(as) : null
+    const bi = orderIndex.has(bs) ? orderIndex.get(bs) : null
+    if (ai != null && bi != null) return ai - bi
+    if (ai != null) return -1
+    if (bi != null) return 1
+    return 0
+  })
+}
+
 const loadPosts = async () => {
   try {
     const res = await apiFetch('/api/posts')
     if (!res.ok) throw new Error('load failed')
     const data = await res.json()
-    posts.value = Array.isArray(data) ? data : []
+    const loaded = Array.isArray(data) ? data.map(p => ({ ...p, _cms_id: p.slug })) : []
+    const localOrder = readLocalPostOrder()
+    posts.value = applyPostOrder(loaded, localOrder)
+    
+    if (historyStacks.posts.length === 0) {
+      historyStacks.posts = [{
+        id: Date.now(),
+        timestamp: new Date().toLocaleTimeString(),
+        operation: 'Initial Load',
+        data: JSON.parse(JSON.stringify(posts.value)),
+        target: 'posts'
+      }]
+    }
   } catch {
     posts.value = []
     showToast('文章列表加载失败', 'error')
   }
+}
+
+const savePostOrderToServer = async () => {
+  const order = (posts.value || []).map((p) => String(p?.slug || '').trim()).filter(Boolean)
+  try {
+    const res = await apiFetch('/api/data?file=postOrder.js', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(order)
+    })
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      if (res.status === 400 && String(text || '').includes('Invalid file')) {
+        const ok = writeLocalPostOrder(order)
+        if (ok) showToast('CMS 服务端未更新，已临时保存到浏览器', 'info')
+        else showToast('CMS 服务端未更新，且浏览器存储失败', 'error')
+        return ok
+      }
+      throw new Error(text || 'save failed')
+    }
+    const json = await res.json().catch(() => null)
+    if (json?.success === false) throw new Error(json?.message || 'save failed')
+    clearLocalPostOrder()
+    return true
+  } catch (e) {
+    showToast(`文章排序保存失败: ${e.message}`, 'error')
+    return false
+  }
+}
+
+const handleUpdatePosts = async (nextList) => {
+  if (String(query.value || '').trim()) {
+    showToast('请先清空搜索再进行排序', 'info')
+    return
+  }
+  posts.value = (Array.isArray(nextList) ? nextList : []).map((p) => ({ ...p, _cms_id: p.slug }))
+  pushHistory(posts.value, '重新排序文章', 'posts')
+  const ok = await savePostOrderToServer()
+  if (ok) showToast('文章排序已保存')
 }
 
 const deletePost = async (slug) => {
@@ -194,6 +297,134 @@ const isEdit = ref(false)
 const editingIndex = ref(-1)
 const editingItem = ref({})
 const jsonContent = ref('')
+
+// History/Undo Logic
+const historyStacks = reactive({
+  listData: [],
+  posts: []
+})
+const maxHistory = 30
+const showHistoryDrawer = ref(false)
+
+const activeHistoryStack = computed(() => {
+  return currentView.value === 'article_list' ? historyStacks.posts : historyStacks.listData
+})
+
+const canUndo = computed(() => activeHistoryStack.value.length > 1)
+
+const pushHistory = (data, operation = 'Unknown Operation', target = 'listData') => {
+  if (!data) return
+  const snapshot = JSON.parse(JSON.stringify(data))
+  
+  // Only push if data is different from last state
+  const stack = target === 'posts' ? historyStacks.posts : historyStacks.listData
+  const lastEntry = stack[stack.length - 1]
+  if (lastEntry && JSON.stringify(lastEntry.data) === JSON.stringify(snapshot)) return
+  
+  stack.push({
+    id: Date.now() + Math.random(),
+    timestamp: new Date().toLocaleTimeString(),
+    operation,
+    data: snapshot,
+    target
+  })
+  
+  if (stack.length > maxHistory) {
+    stack.shift()
+  }
+}
+
+const rollbackTo = async (historyEntry) => {
+  if (!historyEntry) return
+  const target = historyEntry.target === 'posts' ? 'posts' : 'listData'
+  const stack = target === 'posts' ? historyStacks.posts : historyStacks.listData
+  const restored = JSON.parse(JSON.stringify(historyEntry.data))
+  if (target === 'posts') {
+    posts.value = Array.isArray(restored) ? restored : []
+  } else {
+    listData.value = Array.isArray(restored) ? restored : []
+  }
+  
+  // Truncate history stack to this point
+  const index = stack.findIndex(h => h.id === historyEntry.id)
+  if (index !== -1) {
+    const next = stack.slice(0, index + 1)
+    if (target === 'posts') historyStacks.posts = next
+    else historyStacks.listData = next
+  }
+  
+  if (target === 'posts') {
+    await savePostOrderToServer()
+  } else {
+    await (currentView.value === 'aboutData.js' ? saveAboutData() : saveDataToServer())
+  }
+  showToast(`已回退到 ${historyEntry.timestamp} 的版本`)
+}
+
+const undo = async () => {
+  const target = currentView.value === 'article_list' ? 'posts' : 'listData'
+  const stack = target === 'posts' ? historyStacks.posts : historyStacks.listData
+  if (stack.length <= 1) {
+    showToast('没有更多可以回退的内容了', 'info')
+    return
+  }
+  // Remove current state
+  stack.pop()
+  // Get previous state
+  const prevState = stack[stack.length - 1]
+  const restored = JSON.parse(JSON.stringify(prevState.data))
+  if (target === 'posts') {
+    posts.value = Array.isArray(restored) ? restored : []
+    await savePostOrderToServer()
+  } else {
+    listData.value = Array.isArray(restored) ? restored : []
+    await (currentView.value === 'aboutData.js' ? saveAboutData() : saveDataToServer())
+  }
+  showToast('已回退到上一个版本')
+}
+
+const getDiff = (stack, index) => {
+  const s = Array.isArray(stack) ? stack : []
+  if (index <= 0) return null
+  if (!s[index] || !s[index - 1]) return null
+  const current = s[index].data
+  const prev = s[index - 1].data
+  
+  const diff = {
+    added: [],
+    removed: [],
+    changed: []
+  }
+
+  // Find added and changed
+  current.forEach(item => {
+    const prevItem = prev.find(p => p._cms_id === item._cms_id || (p.id && p.id === item.id))
+    if (!prevItem) {
+      diff.added.push(item)
+    } else if (JSON.stringify(item) !== JSON.stringify(prevItem)) {
+      const changes = []
+      Object.keys(item).forEach(key => {
+        if (key.startsWith('_')) return
+        if (JSON.stringify(item[key]) !== JSON.stringify(prevItem[key])) {
+          changes.push({ key, from: prevItem[key], to: item[key] })
+        }
+      })
+      if (changes.length > 0) {
+        diff.changed.push({ name: item.name || item.title || item.question || '项目', changes })
+      }
+    }
+  })
+
+  // Find removed
+  prev.forEach(item => {
+    const currentItem = current.find(c => c._cms_id === item._cms_id || (c.id && c.id === item.id))
+    if (!currentItem) {
+      diff.removed.push(item)
+    }
+  })
+
+  return diff
+}
 
 const editingQuoteIndex = ref(-1)
 const quoteDraft = ref(null)
@@ -335,9 +566,24 @@ const loadData = async (file) => {
     const res = await apiFetch(`/api/data?file=${file}`)
     if (res.ok) {
       const data = await res.json()
-      listData.value = data
+      // Ensure unique IDs for all items to prevent key collisions
+      const processedData = (Array.isArray(data) ? data : []).map(item => ({
+        ...item,
+        _cms_id: item.id || item._cms_id || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      }))
+      listData.value = processedData
+      
+      // Reset history for new file
+      historyStacks.listData = [{
+        id: Date.now(),
+        timestamp: new Date().toLocaleTimeString(),
+        operation: 'Initial Load',
+        data: JSON.parse(JSON.stringify(processedData)),
+        target: 'listData'
+      }]
+      
       if (file === 'aboutData.js') {
-        jsonContent.value = JSON.stringify(data, null, 4)
+        jsonContent.value = JSON.stringify(processedData, null, 4)
       }
     }
   } catch {
@@ -448,6 +694,42 @@ const openAddModal = () => {
   showModal.value = true
 }
 
+const importFromJson = () => {
+  const input = window.prompt('请粘贴友链 JSON 数据 (支持 new URL 格式):')
+  if (!input) return
+  
+  try {
+    let cleanJson = input.trim()
+    // 移除注释
+    cleanJson = cleanJson.replace(/\/\/.*$/gm, '')
+    
+    // 提取字段的正则表达式
+    const nameMatch = cleanJson.match(/"name":\s*"([^"]*)"/)
+    const descMatch = cleanJson.match(/"desc":\s*"([^"]*)"/)
+    const linkMatch = cleanJson.match(/"link":\s*"([^"]*)"/)
+    const avatarMatch = cleanJson.match(/"avatar":\s*"(.*?)"/)
+
+    if (nameMatch) editingItem.value.name = nameMatch[1]
+    if (descMatch) editingItem.value.desc = descMatch[1]
+    if (linkMatch) editingItem.value.link = linkMatch[1]
+    
+    if (avatarMatch) {
+      const val = avatarMatch[1]
+      // 提取 new URL 中的路径
+      const pathMatch = val.match(/new URL\(['"](.*?)['"]/)
+      if (pathMatch) {
+        editingItem.value.avatar = pathMatch[1]
+      } else {
+        editingItem.value.avatar = val
+      }
+    }
+    
+    showToast('JSON 导入成功')
+  } catch (err) {
+    showToast('JSON 解析失败: ' + err.message, 'error')
+  }
+}
+
 const editItem = (index) => {
   isEdit.value = true
   editingIndex.value = index
@@ -457,9 +739,11 @@ const editItem = (index) => {
 
 const deleteItem = async (index) => {
   if (!window.confirm('确认删除此项吗？')) return
+  const item = listData.value[index]
   const nextData = [...listData.value]
   nextData.splice(index, 1)
   listData.value = nextData
+  pushHistory(nextData, `删除项目: ${item.name || item.title || '未命名'}`)
   await saveDataToServer()
 }
 
@@ -481,6 +765,7 @@ const saveEditQuote = async () => {
   const nextData = [...listData.value]
   nextData[index] = { ...(nextData[index] || {}), ...(quoteDraft.value || {}) }
   listData.value = nextData
+  pushHistory(nextData, `编辑语录: ${nextData[index].content?.substring(0, 10)}...`)
   await saveDataToServer()
   cancelEditQuote()
   showToast('保存成功')
@@ -500,10 +785,17 @@ const saveList = async () => {
   }
 
   const nextData = [...listData.value]
+  const newItem = { 
+    ...editingItem.value,
+    _cms_id: editingItem.value._cms_id || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  }
+  
   if (isEdit.value) {
-    nextData[editingIndex.value] = { ...editingItem.value }
+    nextData[editingIndex.value] = newItem
+    pushHistory(nextData, `编辑项目: ${newItem.name || newItem.title || '未命名'}`)
   } else {
-    nextData.unshift({ ...editingItem.value })
+    nextData.unshift(newItem)
+    pushHistory(nextData, `新增项目: ${newItem.name || newItem.title || '未命名'}`)
   }
   listData.value = nextData
 
@@ -540,9 +832,11 @@ const editAboutItem = (index) => {
 
 const deleteAboutItem = async (index) => {
   if (!window.confirm('确认删除此卡片吗？')) return
+  const item = listData.value[index]
   const nextData = [...listData.value]
   nextData.splice(index, 1)
   listData.value = nextData
+  pushHistory(nextData, `删除卡片: ${item.question || '未命名'}`)
   await saveAboutData()
 }
 
@@ -569,8 +863,10 @@ const saveAboutItem = async () => {
   const nextData = [...listData.value]
   if (aboutIsEdit.value) {
     nextData[aboutEditingIndex.value] = item
+    pushHistory(nextData, `编辑卡片: ${item.question}`)
   } else {
     nextData.unshift(item)
+    pushHistory(nextData, `新增卡片: ${item.question}`)
   }
   listData.value = nextData
 
@@ -601,7 +897,9 @@ onMounted(() => {
           v-model:showPreview="showPreview"
           v-model:showMeta="showMeta"
           :isListView="isListView"
+          :canUndo="canUndo"
           @openAddModal="openAddModal"
+          @openHistory="showHistoryDrawer = true"
         />
 
         <div class="content-area">
@@ -612,13 +910,14 @@ onMounted(() => {
             @openPost="openPost"
             @deletePost="deletePost"
             @createNewArticle="currentView = 'article'; resetArticleForm()"
+            @update:filteredPosts="handleUpdatePosts"
           />
 
           <ArticleEditor 
             v-else-if="currentView === 'article'"
             v-model:articleForm="articleForm"
             :showPreview="showPreview"
-            :showMeta="showMeta"
+            v-model:showMeta="showMeta"
             :categories="categories"
             :loading="loading"
             :selectedSlug="selectedSlug"
@@ -634,28 +933,32 @@ onMounted(() => {
               :listData="listData"
               @editItem="editItem"
               @deleteItem="deleteItem"
+              @update:listData="val => { listData = val; pushHistory(val, '重新排序友链'); saveDataToServer() }"
             />
             <PhotoManager 
               v-else-if="currentView === 'photos.js'"
               :listData="listData"
               @editItem="editItem"
               @deleteItem="deleteItem"
+              @update:listData="val => { listData = val; pushHistory(val, '重新排序相册'); saveDataToServer() }"
             />
             <QuoteManager 
               v-else-if="currentView === 'quotes.js'"
               :listData="listData"
               :editingQuoteIndex="editingQuoteIndex"
-              :quoteDraft="quoteDraft"
+              v-model:quoteDraft="quoteDraft"
               @startEditQuote="startEditQuote"
               @cancelEditQuote="cancelEditQuote"
               @saveEditQuote="saveEditQuote"
               @deleteItem="deleteItem"
+              @update:listData="val => { listData = val; pushHistory(val, '重新排序语录'); saveDataToServer() }"
             />
             <ThoughtManager 
               v-else-if="currentView === 'thoughts.js'"
               :listData="listData"
               @editItem="editItem"
               @deleteItem="deleteItem"
+              @update:listData="val => { listData = val; pushHistory(val, '重新排序说说'); saveDataToServer() }"
             />
           </template>
 
@@ -668,6 +971,7 @@ onMounted(() => {
             @deleteAboutItem="deleteAboutItem"
             @openAboutAddModal="openAboutAddModal"
             @saveAboutData="saveAboutData"
+            @update:listData="val => { listData = val; pushHistory(val, '重新排序关于卡片'); saveAboutData() }"
           />
         </div>
       </main>
@@ -675,45 +979,66 @@ onMounted(() => {
       <!-- Modals remain in main page for simplicity of state management -->
       <!-- Add/Edit Modal -->
       <div class="modal-mask" v-if="showModal" @click.self="showModal = false">
-        <div class="modal-panel">
+        <div class="modal-panel" :class="{ 'friend-modal': currentView === 'friendList.js' }">
           <div class="modal-header">
             <h3>{{ isEdit ? '编辑项目' : '新建项目' }}</h3>
-            <button class="btn-icon" @click="showModal = false">关闭</button>
-          </div>
-          <div class="modal-body">
-            <div v-if="currentView === 'friendList.js'" class="cms-friend-preview">
-              <div class="friend-card">
-                <div class="avatar-wrapper">
-                  <img v-if="editingItem.avatar" :src="normalizeUrl(editingItem.avatar)" :alt="editingItem.name || 'Friend'" class="avatar" />
-                  <div v-else class="avatar-placeholder">{{ (editingItem.name || 'F').charAt(0).toUpperCase() }}</div>
-                </div>
-                <div class="info">
-                  <h3 class="name">{{ editingItem.name || 'Friend' }}</h3>
-                  <p class="desc">{{ editingItem.desc || 'A cool friend.' }}</p>
-                </div>
-              </div>
+            <div class="header-actions">
+              <button v-if="currentView === 'friendList.js'" class="btn-secondary" @click="importFromJson" style="margin-right: 12px">导入 JSON</button>
+              <button class="btn-icon" @click="showModal = false">关闭</button>
             </div>
-            <div class="form-grid">
-              <div class="form-group" v-for="field in currentFields" :key="field.key">
-                <label>{{ field.label }}</label>
-                <div v-if="field.type === 'image'">
-                  <div style="display: flex; gap: 12px; align-items: center">
-                    <img :src="normalizeUrl(editingItem[field.key])" v-if="editingItem[field.key]" class="img-thumb" />
-                    <div style="flex: 1">
-                      <input type="text" v-model="editingItem[field.key]" placeholder="图片URL..." style="margin-bottom: 8px" />
+          </div>
+          <div class="modal-body" :class="{ 'friend-modal-body': currentView === 'friendList.js' }">
+            <template v-if="currentView === 'friendList.js'">
+              <div class="form-section">
+                <div class="form-group" v-for="field in currentFields" :key="field.key">
+                  <label>{{ field.label }}</label>
+                  <div v-if="field.type === 'image'">
+                    <div class="image-upload-area">
+                      <input type="text" v-model="editingItem[field.key]" placeholder="图片URL或路径..." />
                       <button type="button" class="btn-secondary file-upload-btn">
                         选择本地图片
                         <input type="file" @change="(e) => uploadFile(e, field.key)" class="hidden-file-input" />
                       </button>
                     </div>
                   </div>
+                  <input v-else type="text" v-model="editingItem[field.key]" :placeholder="'请输入' + field.label" />
                 </div>
-                <textarea v-else-if="field.type === 'textarea'" v-model="editingItem[field.key]" rows="3"></textarea>
-                <input v-else-if="field.type === 'date'" type="date" v-model="editingItem[field.key]" />
-                <input v-else-if="field.type === 'number'" type="number" v-model.number="editingItem[field.key]" />
-                <input v-else type="text" v-model="editingItem[field.key]" />
               </div>
-            </div>
+              <div class="preview-section">
+                <h4 class="preview-title">卡片预览</h4>
+                <div class="preview-card-container">
+                  <FriendCard 
+                    :name="editingItem.name || 'Your Name'"
+                    :desc="editingItem.desc || 'Your description here...'"
+                    :link="editingItem.link || '#'"
+                    :avatar="normalizeUrl(editingItem.avatar)"
+                  />
+                </div>
+              </div>
+            </template>
+            <template v-else>
+              <div class="form-grid">
+                <div class="form-group" v-for="field in currentFields" :key="field.key">
+                  <label>{{ field.label }}</label>
+                  <div v-if="field.type === 'image'">
+                    <div style="display: flex; gap: 12px; align-items: center">
+                      <img :src="normalizeUrl(editingItem[field.key])" v-if="editingItem[field.key]" class="img-thumb" />
+                      <div style="flex: 1">
+                        <input type="text" v-model="editingItem[field.key]" placeholder="图片URL..." style="margin-bottom: 8px" />
+                        <button type="button" class="btn-secondary file-upload-btn">
+                          选择本地图片
+                          <input type="file" @change="(e) => uploadFile(e, field.key)" class="hidden-file-input" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <textarea v-else-if="field.type === 'textarea'" v-model="editingItem[field.key]" rows="3"></textarea>
+                  <input v-else-if="field.type === 'date'" type="date" v-model="editingItem[field.key]" />
+                  <input v-else-if="field.type === 'number'" type="number" v-model.number="editingItem[field.key]" />
+                  <input v-else type="text" v-model="editingItem[field.key]" />
+                </div>
+              </div>
+            </template>
           </div>
           <div class="modal-footer">
             <button class="btn-secondary" @click="showModal = false">取消</button>
@@ -830,6 +1155,75 @@ onMounted(() => {
       <!-- Markdown Import Hidden Input -->
       <input ref="mdFileInput" type="file" accept=".md,.markdown" style="display: none" @change="handleMarkdownFileUpload" />
 
+      <!-- History Drawer -->
+      <div v-if="showHistoryDrawer" class="history-drawer-overlay" @click.self="showHistoryDrawer = false">
+        <div class="history-drawer">
+          <div class="drawer-header">
+            <h3>操作历史记录</h3>
+            <button class="btn-icon" @click="showHistoryDrawer = false">关闭</button>
+          </div>
+          <div class="drawer-content">
+            <div v-if="activeHistoryStack.length <= 1" class="empty-history">
+              暂无历史操作记录
+            </div>
+            <div 
+              v-for="(entry, idx) in [...activeHistoryStack].reverse()" 
+              :key="entry.id" 
+              class="history-entry"
+              :class="{ 'current-state': idx === 0 }"
+            >
+              <div class="entry-main">
+                <div class="entry-info">
+                  <span class="entry-time">{{ entry.timestamp }}</span>
+                  <span class="entry-op">{{ entry.operation }}</span>
+                </div>
+                <button 
+                  v-if="idx > 0" 
+                  class="rollback-btn" 
+                  @click="rollbackTo(entry)"
+                >
+                  回滚
+                </button>
+                <span v-else class="current-tag">当前</span>
+              </div>
+              
+              <!-- Diff View -->
+              <div v-if="activeHistoryStack.length - 1 - idx > 0" class="diff-container">
+                <div v-if="getDiff(activeHistoryStack, activeHistoryStack.length - 1 - idx)" class="diff-content">
+                  <!-- Added -->
+                  <div v-for="item in getDiff(activeHistoryStack, activeHistoryStack.length - 1 - idx).added" :key="item._cms_id" class="diff-line added">
+                    <span class="diff-sign">+</span>
+                    <span class="diff-text">新增: {{ item.name || item.title || item.question || '项目' }}</span>
+                  </div>
+                  <!-- Removed -->
+                  <div v-for="item in getDiff(activeHistoryStack, activeHistoryStack.length - 1 - idx).removed" :key="item._cms_id" class="diff-line removed">
+                    <span class="diff-sign">-</span>
+                    <span class="diff-text">删除: {{ item.name || item.title || item.question || '项目' }}</span>
+                  </div>
+                  <!-- Changed -->
+                  <div v-for="change in getDiff(activeHistoryStack, activeHistoryStack.length - 1 - idx).changed" :key="change.name" class="diff-line modified">
+                    <div class="modified-header">
+                      <span class="diff-sign">M</span>
+                      <span class="diff-text">修改: {{ change.name }}</span>
+                    </div>
+                    <div class="modified-details">
+                      <div v-for="field in change.changes" :key="field.key" class="change-row">
+                        <span class="field-label">{{ field.key }}</span>
+                        <div class="change-values">
+                          <span class="val-old">{{ field.from || '空' }}</span>
+                          <span class="val-arrow">→</span>
+                          <span class="val-new">{{ field.to || '空' }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="toast" :class="{ show: toast.show, error: toast.type === 'error' }">
         {{ toast.msg }}
       </div>
@@ -897,6 +1291,7 @@ onMounted(() => {
   &.wide-modal { width: 720px; }
   &.small-modal { width: 500px; }
   &.about-detail-panel { width: 600px; border-radius: 30px; }
+  &.friend-modal { width: 850px; }
 }
 
 .modal-header {
@@ -908,10 +1303,63 @@ onMounted(() => {
   h3 { margin: 0; font-size: 1.1rem; }
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+}
+
 .modal-body {
   padding: 24px;
   max-height: min(70vh, 760px);
   overflow: auto;
+
+  &.friend-modal-body {
+    display: flex;
+    gap: 32px;
+    padding: 32px;
+    overflow: visible;
+
+    .form-section {
+      flex: 1.2;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .preview-section {
+      flex: 1;
+      background: rgb(var(--color-bg-secondary) / 0.3);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border: 1px dashed rgb(var(--color-border-primary) / 0.5);
+
+      .preview-title {
+        margin: 0 0 20px 0;
+        color: rgb(var(--color-text-secondary));
+        font-size: 0.9rem;
+        font-weight: 600;
+      }
+
+      .preview-card-container {
+        width: 100%;
+        pointer-events: none;
+      }
+    }
+  }
+}
+
+.image-upload-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  input {
+    margin-bottom: 0 !important;
+  }
 }
 
 .modal-footer {
@@ -921,6 +1369,215 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+/* History Drawer Styles */
+.history-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 2000;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.history-drawer {
+  width: 420px;
+  height: 100%;
+  background: rgb(var(--color-bg-primary));
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.3s ease;
+
+  @keyframes slideIn {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+}
+
+.drawer-header {
+  padding: 24px;
+  border-bottom: 1px solid rgb(var(--color-border-primary) / 0.75);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  h3 { margin: 0; font-size: 1.1rem; }
+}
+
+.drawer-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.history-entry {
+  border: 1px solid rgb(var(--color-border-primary) / 0.6);
+  border-radius: 12px;
+  padding: 16px;
+  background: rgb(var(--color-bg-secondary) / 0.2);
+  transition: all 0.2s;
+
+  &.current-state {
+    border-color: rgb(var(--color-accent) / 0.4);
+    background: rgb(var(--color-accent) / 0.03);
+  }
+
+  &:hover {
+    border-color: rgb(var(--color-accent) / 0.3);
+  }
+}
+
+.entry-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.entry-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.entry-time {
+  font-size: 0.75rem;
+  color: rgb(var(--color-text-secondary));
+  font-family: monospace;
+}
+
+.entry-op {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.rollback-btn {
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid rgb(var(--color-accent) / 0.5);
+  background: transparent;
+  color: rgb(var(--color-accent));
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgb(var(--color-accent));
+    color: white;
+  }
+}
+
+.current-tag {
+  font-size: 0.75rem;
+  color: rgb(var(--color-accent));
+  background: rgb(var(--color-accent) / 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.diff-container {
+  font-size: 0.8rem;
+  border-top: 1px dashed rgb(var(--color-border-primary) / 0.5);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.diff-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.diff-line {
+  display: flex;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  line-height: 1.4;
+
+  &.added {
+    background: #ecfdf5;
+    color: #065f46;
+    .diff-sign { color: #10b981; }
+  }
+
+  &.removed {
+    background: #fef2f2;
+    color: #991b1b;
+    .diff-sign { color: #ef4444; }
+  }
+
+  &.modified {
+    background: #fdfcea;
+    color: #854d0e;
+    flex-direction: column;
+    .diff-sign { color: #eab308; }
+  }
+}
+
+.diff-sign {
+  font-family: monospace;
+  font-weight: 900;
+  width: 12px;
+}
+
+.modified-header {
+  display: flex;
+  gap: 8px;
+}
+
+.modified-details {
+  margin-left: 20px;
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.change-row {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.field-label {
+  color: rgb(var(--color-text-secondary));
+  font-size: 0.75rem;
+  min-width: 40px;
+}
+
+.change-values {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  word-break: break-all;
+}
+
+.val-old {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.val-arrow {
+  opacity: 0.4;
+}
+
+.val-new {
+  font-weight: 600;
+}
+
+.empty-history {
+  text-align: center;
+  padding: 60px 0;
+  color: rgb(var(--color-text-secondary));
+  opacity: 0.6;
 }
 
 .form-grid { display: grid; gap: 20px; }

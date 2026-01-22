@@ -1,11 +1,16 @@
 
 <script setup>
-import { EditOutlined, DeleteOutlined } from '@ant-design/icons-vue'
+import { EditOutlined, DeleteOutlined, HolderOutlined } from '@ant-design/icons-vue'
+import draggable from 'vuedraggable'
 import { normalizeUrl } from '../utils'
 import { aboutTypeOptions } from '../constants'
+import { computed } from 'vue'
 
 const props = defineProps({
-  listData: Array,
+  listData: {
+    type: Array,
+    required: true
+  },
   aboutNewType: String
 })
 
@@ -15,8 +20,14 @@ const emit = defineEmits([
   'editAboutItem',
   'deleteAboutItem',
   'openAboutAddModal',
-  'saveAboutData'
+  'saveAboutData',
+  'update:listData'
 ])
+
+const list = computed({
+  get: () => props.listData,
+  set: (value) => emit('update:listData', value)
+})
 </script>
 
 <template>
@@ -28,44 +39,57 @@ const emit = defineEmits([
       </div>
     </div>
 
-    <div class="cms-about-grid" v-if="listData.length > 0">
-      <div class="cms-about-card-wrap cms-card-wrap" v-for="(item, index) in listData" :key="item.id || index">
-        <div class="cms-about-card" @click="emit('openAboutDetail', item.id)">
-          <div class="cms-about-q">Q.</div>
-          <div class="cms-about-question">{{ item.question }}</div>
-          <div class="cms-about-preview">
-            <div v-if="item.type === 'profile'" class="profile-preview">
-              <span class="avatar-box">
-                <img :src="normalizeUrl('/assets/img/Mikasa.jpg')" alt="avatar" />
-              </span>
-              <div class="name-text">{{ item.name || 'Me' }}</div>
+    <draggable 
+      v-if="list.length > 0"
+      v-model="list" 
+      class="cms-about-grid"
+      item-key="_cms_id"
+      handle=".drag-handle"
+      :animation="300"
+      ghost-class="ghost-card"
+    >
+      <template #item="{ element, index }">
+        <div class="cms-about-card-wrap cms-card-wrap">
+          <div class="cms-about-card" @click="emit('openAboutDetail', element.id)">
+            <div class="cms-about-q">Q.</div>
+            <div class="cms-about-question">{{ element.question }}</div>
+            <div class="cms-about-preview">
+              <div v-if="element.type === 'profile'" class="profile-preview">
+                <span class="avatar-box">
+                  <img :src="normalizeUrl('/assets/img/Mikasa.jpg')" alt="avatar" />
+                </span>
+                <div class="name-text">{{ element.name || 'Me' }}</div>
+              </div>
+              <p v-else-if="element.type === 'quote'" class="quote-preview">“{{ element.answer }}”</p>
+              <div v-else-if="element.type === 'skills'" class="skills-preview">
+                <span v-for="s in (element.skills || []).slice(0, 3)" :key="s">{{ s }}</span>
+                <span v-if="(element.skills || []).length > 3">...</span>
+              </div>
+              <div v-else-if="element.type === 'social'" class="social-preview">
+                <span class="social-tag">Social Links</span>
+              </div>
+              <div v-else-if="element.type === 'hobbies'" class="skills-preview">
+                <span v-for="h in element.detail?.list ? element.detail.list.slice(0, 3) : []" :key="h.name">{{ h.icon || '✨' }}</span>
+                <span v-if="element.detail?.list && element.detail.list.length > 3">...</span>
+              </div>
+              <p v-else class="text-preview">{{ element.answer }}</p>
             </div>
-            <p v-else-if="item.type === 'quote'" class="quote-preview">“{{ item.answer }}”</p>
-            <div v-else-if="item.type === 'skills'" class="skills-preview">
-              <span v-for="s in (item.skills || []).slice(0, 3)" :key="s">{{ s }}</span>
-              <span v-if="(item.skills || []).length > 3">...</span>
-            </div>
-            <div v-else-if="item.type === 'social'" class="social-preview">
-              <span class="social-tag">Social Links</span>
-            </div>
-            <div v-else-if="item.type === 'hobbies'" class="skills-preview">
-              <span v-for="h in item.detail?.list ? item.detail.list.slice(0, 3) : []" :key="h.name">{{ h.icon || '✨' }}</span>
-              <span v-if="item.detail?.list && item.detail.list.length > 3">...</span>
-            </div>
-            <p v-else class="text-preview">{{ item.answer }}</p>
+            <div class="tap-hint">点击预览详情</div>
           </div>
-          <div class="tap-hint">点击预览详情</div>
+          <div class="cms-about-actions cms-card-actions">
+            <div class="cms-action-btn drag-handle" title="拖拽排序">
+              <HolderOutlined />
+            </div>
+            <button class="cms-action-btn" @click.stop="emit('editAboutItem', index)" title="编辑">
+              <EditOutlined />
+            </button>
+            <button class="cms-action-btn danger" @click.stop="emit('deleteAboutItem', index)" title="删除">
+              <DeleteOutlined />
+            </button>
+          </div>
         </div>
-        <div class="cms-about-actions cms-card-actions">
-          <button class="cms-action-btn" @click.stop="emit('editAboutItem', index)" title="编辑">
-            <EditOutlined />
-          </button>
-          <button class="cms-action-btn danger" @click.stop="emit('deleteAboutItem', index)" title="删除">
-            <DeleteOutlined />
-          </button>
-        </div>
-      </div>
-    </div>
+      </template>
+    </draggable>
     <div v-else class="empty-state">暂无数据，请在下方新增卡片</div>
 
     <div class="cms-bottom-bar">
@@ -328,6 +352,21 @@ const emit = defineEmits([
   color: #ef4444;
   border-color: rgba(239, 68, 68, 0.35);
   background: rgba(239, 68, 68, 0.08);
+}
+
+.drag-handle {
+  cursor: grab;
+  color: rgb(var(--color-text-secondary));
+  
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.ghost-card {
+  opacity: 0.5;
+  background: rgb(var(--color-bg-secondary)) !important;
+  border: 2px dashed rgb(var(--color-accent)) !important;
 }
 
 .empty-state {

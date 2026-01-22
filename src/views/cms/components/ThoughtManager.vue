@@ -1,52 +1,75 @@
 
 <script setup>
-import { EditOutlined, DeleteOutlined } from '@ant-design/icons-vue'
+import { EditOutlined, DeleteOutlined, HolderOutlined } from '@ant-design/icons-vue'
+import draggable from 'vuedraggable'
 import { normalizeUrl, linkify } from '../utils'
+import { computed } from 'vue'
 
 const props = defineProps({
-  listData: Array
+  listData: {
+    type: Array,
+    required: true
+  }
 })
 
-const emit = defineEmits(['editItem', 'deleteItem'])
+const emit = defineEmits(['editItem', 'deleteItem', 'update:listData'])
+
+const list = computed({
+  get: () => props.listData,
+  set: (value) => emit('update:listData', value)
+})
 </script>
 
 <template>
   <div class="cms-thinking-container">
-    <div class="cms-thinking-list" v-if="listData.length > 0">
-      <div class="cms-thought-item cms-card-wrap" v-for="(item, index) in listData" :key="index">
-        <div class="cms-thought-avatar-col">
-          <img :src="normalizeUrl('/assets/img/Mikasa.jpg')" alt="Avatar" class="cms-thought-avatar-img" loading="lazy">
-        </div>
-        <div class="cms-thought-content-col">
-          <div class="cms-thought-meta">
-            <span class="cms-thought-nickname">Youth</span>
-            <span class="cms-thought-date">{{ item.date }} {{ item.week }}</span>
+    <draggable 
+      v-if="list.length > 0"
+      v-model="list" 
+      class="cms-thinking-list"
+      item-key="_cms_id"
+      handle=".drag-handle"
+      :animation="300"
+      ghost-class="ghost-card"
+    >
+      <template #item="{ element, index }">
+        <div class="cms-thought-item cms-card-wrap">
+          <div class="cms-thought-avatar-col">
+            <img :src="normalizeUrl('/assets/img/Mikasa.jpg')" alt="Avatar" class="cms-thought-avatar-img" loading="lazy">
           </div>
-          <div class="cms-thought-bubble">
-            <div class="cms-thought-bubble-content" v-html="linkify(item.content)"></div>
+          <div class="cms-thought-content-col">
+            <div class="cms-thought-meta">
+              <span class="cms-thought-nickname">Youth</span>
+              <span class="cms-thought-date">{{ element.date }} {{ element.week }}</span>
+            </div>
+            <div class="cms-thought-bubble">
+              <div class="cms-thought-bubble-content" v-html="linkify(element.content)"></div>
+            </div>
+            <div class="cms-thought-actions-row">
+              <span class="cms-thought-action-item">
+                <span class="icon">💬</span> {{ element.comments ?? 0 }}
+              </span>
+              <span class="cms-thought-action-item">
+                <span class="icon">🤍</span> {{ element.likes ?? 0 }}
+              </span>
+              <span class="cms-thought-action-item">
+                <span class="icon">👀</span> 0
+              </span>
+            </div>
           </div>
-          <div class="cms-thought-actions-row">
-            <span class="cms-thought-action-item">
-              <span class="icon">💬</span> {{ item.comments ?? 0 }}
-            </span>
-            <span class="cms-thought-action-item">
-              <span class="icon">🤍</span> {{ item.likes ?? 0 }}
-            </span>
-            <span class="cms-thought-action-item">
-              <span class="icon">👀</span> 0
-            </span>
+          <div class="cms-thought-actions cms-card-actions">
+            <div class="cms-action-btn drag-handle" title="拖拽排序">
+              <HolderOutlined />
+            </div>
+            <button class="cms-action-btn" @click="emit('editItem', index)" title="编辑">
+              <EditOutlined />
+            </button>
+            <button class="cms-action-btn danger" @click="emit('deleteItem', index)" title="删除">
+              <DeleteOutlined />
+            </button>
           </div>
         </div>
-        <div class="cms-thought-actions cms-card-actions">
-          <button class="cms-action-btn" @click="emit('editItem', index)" title="编辑">
-            <EditOutlined />
-          </button>
-          <button class="cms-action-btn danger" @click="emit('deleteItem', index)" title="删除">
-            <DeleteOutlined />
-          </button>
-        </div>
-      </div>
-    </div>
+      </template>
+    </draggable>
     <div v-else class="empty-state">暂无数据，请点击上方新增</div>
   </div>
 </template>
@@ -195,6 +218,21 @@ const emit = defineEmits(['editItem', 'deleteItem'])
   color: #ef4444;
   border-color: rgba(239, 68, 68, 0.35);
   background: rgba(239, 68, 68, 0.08);
+}
+
+.drag-handle {
+  cursor: grab;
+  color: rgb(var(--color-text-secondary));
+  
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.ghost-card {
+  opacity: 0.5;
+  background: rgb(var(--color-bg-secondary)) !important;
+  border: 2px dashed rgb(var(--color-accent)) !important;
 }
 
 .empty-state {

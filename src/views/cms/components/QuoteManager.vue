@@ -1,91 +1,142 @@
 
 <script setup>
-import { EditOutlined, DeleteOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons-vue'
+import { EditOutlined, DeleteOutlined, CheckOutlined, CloseOutlined, HolderOutlined } from '@ant-design/icons-vue'
+import draggable from 'vuedraggable'
+import { computed, ref } from 'vue'
 
 const props = defineProps({
-  listData: Array,
+  listData: {
+    type: Array,
+    required: true
+  },
   editingQuoteIndex: Number,
-  quoteDraft: Object
+  quoteDraft: {
+    type: Object,
+    default: null
+  }
 })
 
-const emit = defineEmits(['startEditQuote', 'cancelEditQuote', 'saveEditQuote', 'deleteItem'])
+const emit = defineEmits(['startEditQuote', 'cancelEditQuote', 'saveEditQuote', 'deleteItem', 'update:listData', 'update:quoteDraft'])
+
+const list = computed({
+  get: () => props.listData,
+  set: (value) => emit('update:listData', value)
+})
+
+const localDraft = computed({
+  get: () => props.quoteDraft,
+  set: (val) => emit('update:quoteDraft', val)
+})
+
+const isDragging = ref(false)
+
+const onDragStart = () => {
+  isDragging.value = true
+}
+
+const onDragEnd = () => {
+  setTimeout(() => {
+    isDragging.value = false
+  }, 0)
+}
+
+const onCardClick = (index) => {
+  if (isDragging.value) return
+  emit('startEditQuote', index)
+}
 </script>
 
 <template>
   <div class="cms-quotes-container">
-    <div class="cms-quotes-grid" v-if="listData.length > 0">
-      <div class="cms-quote-card-wrap cms-card-wrap" v-for="(item, index) in listData" :key="index">
-        <div class="cms-quote-card" :class="{ editing: editingQuoteIndex === index }">
-          <template v-if="editingQuoteIndex === index">
-            <div class="cms-quote-edit-grid">
-              <div class="cms-quote-edit-field">
-                <label>语录内容</label>
-                <textarea
-                  v-model="quoteDraft.content"
-                  rows="4"
-                  class="cms-quote-edit-textarea"
-                  placeholder="输入语录内容..."
-                ></textarea>
-              </div>
-              <div class="cms-quote-edit-row">
+    <draggable 
+      v-if="list.length > 0"
+      v-model="list" 
+      class="cms-quotes-grid"
+      item-key="_cms_id"
+      :animation="300"
+      :disabled="editingQuoteIndex !== -1"
+      :filter="'.cms-card-actions, .cms-action-btn, button, input, textarea, select, option'"
+      @start="onDragStart"
+      @end="onDragEnd"
+      ghost-class="ghost-card"
+    >
+      <template #item="{ element, index }">
+        <div class="cms-quote-card-wrap cms-card-wrap">
+          <div class="cms-quote-card" :class="{ editing: editingQuoteIndex === index }">
+            <template v-if="editingQuoteIndex === index && localDraft">
+              <div class="cms-quote-edit-grid">
                 <div class="cms-quote-edit-field">
-                  <label>作者/出处</label>
-                  <input v-model="quoteDraft.author" type="text" placeholder="例如：鲁迅" />
+                  <label>语录内容</label>
+                  <textarea
+                    v-model="localDraft.content"
+                    rows="4"
+                    class="cms-quote-edit-textarea"
+                    placeholder="输入语录内容..."
+                  ></textarea>
                 </div>
-                <div class="cms-quote-edit-field">
-                  <label>来源</label>
-                  <input v-model="quoteDraft.source" type="text" placeholder="例如：书名/文章/链接" />
+                <div class="cms-quote-edit-row">
+                  <div class="cms-quote-edit-field">
+                    <label>作者/出处</label>
+                    <input v-model="localDraft.author" type="text" placeholder="例如：鲁迅" />
+                  </div>
+                  <div class="cms-quote-edit-field">
+                    <label>来源</label>
+                    <input v-model="localDraft.source" type="text" placeholder="例如：书名/文章/链接" />
+                  </div>
+                </div>
+                <div class="cms-quote-edit-row">
+                  <div class="cms-quote-edit-field">
+                    <label>记录日期</label>
+                    <input v-model="localDraft.date" type="date" />
+                  </div>
+                  <div class="cms-quote-edit-actions">
+                    <button class="cms-pill-btn" @click="emit('saveEditQuote')" title="保存">
+                      <CheckOutlined />
+                      <span>保存</span>
+                    </button>
+                    <button class="cms-pill-btn ghost" @click="emit('cancelEditQuote')" title="取消">
+                      <CloseOutlined />
+                      <span>取消</span>
+                    </button>
+                  </div>
                 </div>
               </div>
-              <div class="cms-quote-edit-row">
-                <div class="cms-quote-edit-field">
-                  <label>记录日期</label>
-                  <input v-model="quoteDraft.date" type="date" />
+            </template>
+            <template v-else>
+              <div class="quote-style-card" @click="onCardClick(index)">
+                <div class="quote-content-text">
+                  <span class="quote-text-span">{{ element.content }}</span>
                 </div>
-                <div class="cms-quote-edit-actions">
-                  <button class="cms-pill-btn" @click="emit('saveEditQuote')" title="保存">
-                    <CheckOutlined />
-                    <span>保存</span>
-                  </button>
-                  <button class="cms-pill-btn ghost" @click="emit('cancelEditQuote')" title="取消">
-                    <CloseOutlined />
-                    <span>取消</span>
-                  </button>
+                <div class="quote-footer-info">
+                  <div class="author-info-box">
+                    <span v-if="element.author" class="quote-author-name">—— {{ element.author }}</span>
+                    <span v-if="element.source" class="quote-source-name"> {{ element.source }}</span>
+                  </div>
+                  <div class="quote-date-text">{{ element.date }}</div>
                 </div>
               </div>
-            </div>
-          </template>
-          <template v-else>
-            <div class="quote-style-card" @click="emit('startEditQuote', index)">
-              <div class="quote-content-text">
-                <span class="quote-text-span">{{ item.content }}</span>
-              </div>
-              <div class="quote-footer-info">
-                <div class="author-info-box">
-                  <span v-if="item.author" class="quote-author-name">—— {{ item.author }}</span>
-                  <span v-if="item.source" class="quote-source-name"> {{ item.source }}</span>
-                </div>
-                <div class="quote-date-text">{{ item.date }}</div>
-              </div>
-            </div>
-          </template>
-        </div>
+            </template>
+          </div>
 
-        <div class="cms-quote-actions cms-card-actions">
-          <button
-            v-if="editingQuoteIndex !== index"
-            class="cms-action-btn"
-            @click="emit('startEditQuote', index)"
-            title="编辑"
-          >
-            <EditOutlined />
-          </button>
-          <button class="cms-action-btn danger" @click="emit('deleteItem', index)" title="删除">
-            <DeleteOutlined />
-          </button>
+          <div class="cms-quote-actions cms-card-actions">
+            <div v-if="editingQuoteIndex !== index" class="cms-action-btn drag-handle" title="拖拽排序">
+              <HolderOutlined />
+            </div>
+            <button
+              v-if="editingQuoteIndex !== index"
+              class="cms-action-btn"
+              @click.stop="emit('startEditQuote', index)"
+              title="编辑"
+            >
+              <EditOutlined />
+            </button>
+            <button class="cms-action-btn danger" @click.stop="emit('deleteItem', index)" title="删除">
+              <DeleteOutlined />
+            </button>
+          </div>
         </div>
-      </div>
-    </div>
+      </template>
+    </draggable>
     <div v-else class="empty-state">暂无数据，请点击上方新增</div>
   </div>
 </template>
@@ -101,6 +152,10 @@ const emit = defineEmits(['startEditQuote', 'cancelEditQuote', 'saveEditQuote', 
   gap: 30px;
 }
 
+.cms-card-wrap {
+  position: relative;
+}
+
 .quote-style-card {
   background: rgb(var(--color-bg-primary));
   border-radius: 16px;
@@ -111,7 +166,7 @@ const emit = defineEmits(['startEditQuote', 'cancelEditQuote', 'saveEditQuote', 
   justify-content: space-between;
   position: relative;
   overflow: hidden;
-  cursor: pointer;
+  cursor: grab;
   height: 100%;
 
   &::before {
@@ -292,6 +347,21 @@ const emit = defineEmits(['startEditQuote', 'cancelEditQuote', 'saveEditQuote', 
   color: #ef4444;
   border-color: rgba(239, 68, 68, 0.35);
   background: rgba(239, 68, 68, 0.08);
+}
+
+.drag-handle {
+  cursor: grab;
+  color: rgb(var(--color-text-secondary));
+  
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.ghost-card {
+  opacity: 0.5;
+  background: rgb(var(--color-bg-secondary)) !important;
+  border: 2px dashed rgb(var(--color-accent)) !important;
 }
 
 .empty-state {

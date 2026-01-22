@@ -22,7 +22,8 @@ export const qaList = [
                     "event": "正在寻找更多可能性"
                 }
             ]
-        }
+        },
+        "_cms_id": "who"
     },
     {
         "id": "words",
@@ -31,7 +32,8 @@ export const qaList = [
         "type": "text",
         "detail": {
             "text": "好奇心驱动我不断学习新技术；长期主义让我不畏惧当下的困难，专注于长远的价值；而作为一个生活家，我坚信代码之外，生活本身才是最大的艺术。"
-        }
+        },
+        "_cms_id": "words"
     },
     {
         "id": "stack",
@@ -73,7 +75,8 @@ export const qaList = [
                 "Figma"
             ]
         },
-        "answer": ""
+        "answer": "",
+        "_cms_id": "stack"
     },
     {
         "id": "location",
@@ -82,7 +85,8 @@ export const qaList = [
         "type": "text",
         "detail": {
             "text": "目前生活在武汉，这座城市有着热干面的香气和长江的波涛。如果你也在这里，欢迎面基！☕️"
-        }
+        },
+        "_cms_id": "location"
     },
     {
         "id": "quote",
@@ -92,6 +96,7 @@ export const qaList = [
         "type": "quote",
         "detail": {
             "text": "时光易逝，不仅仅是珍惜时间，更要珍惜每一个当下的感受和体验。Don't count the days, make the days count."
-        }
+        },
+        "_cms_id": "quote"
     }
 ];

@@ -1,5 +1,5 @@
 
-const CMS_BASE = import.meta.env.VITE_CMS_API_BASE || 'http://localhost:3003'
+const CMS_BASE = import.meta.env.VITE_CMS_API_BASE || 'http://localhost:3000'
 
 export const apiUrl = (pathname) => {
   const p = String(pathname || '')

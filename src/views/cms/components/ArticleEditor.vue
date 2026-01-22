@@ -6,7 +6,10 @@ import 'github-markdown-css/github-markdown-light.css'
 import { normalizeUrl } from '../utils'
 
 const props = defineProps({
-  articleForm: Object,
+  articleForm: {
+    type: Object,
+    required: true
+  },
   showPreview: Boolean,
   showMeta: Boolean,
   categories: Array,
@@ -23,6 +26,11 @@ const emit = defineEmits([
   'handlePaste'
 ])
 
+const localForm = computed({
+  get: () => props.articleForm,
+  set: (val) => emit('update:articleForm', val)
+})
+
 const md = new MarkdownIt()
 const previewHtml = ref('')
 let debounceTimer = null
@@ -35,15 +43,15 @@ const updatePreview = (content) => {
   }, 300)
 }
 
-watch(() => props.articleForm.content, (newContent) => {
+watch(() => localForm.value.content, (newContent) => {
   updatePreview(newContent)
 }, { immediate: true })
 
 const articleTagsInput = computed({
-  get: () => (props.articleForm.tags || []).join(', '),
+  get: () => (localForm.value.tags || []).join(', '),
   set: (val) => {
     const tags = String(val || '').split(/[,，]/).map((t) => t.trim()).filter((t) => t)
-    emit('update:articleForm', { ...props.articleForm, tags })
+    localForm.value = { ...localForm.value, tags }
   }
 })
 
@@ -62,12 +70,12 @@ const onSubmit = () => emit('submitArticle')
       <div class="editor-main">
         <textarea
           class="markdown-editor"
-          v-model="articleForm.content"
+          v-model="localForm.content"
           @paste="onPaste"
           placeholder="# 正文内容&#10;&#10;支持 Markdown 语法。&#10;支持直接粘贴图片上传。"
         ></textarea>
         <div class="editor-footer">
-          {{ articleForm.content?.length || 0 }} 字
+          {{ localForm.content?.length || 0 }} 字
         </div>
       </div>
     </div>
@@ -86,7 +94,7 @@ const onSubmit = () => emit('submitArticle')
         <div class="form-grid">
           <div class="form-group">
             <label>文章标题</label>
-            <input v-model="articleForm.title" placeholder="输入引人注目的标题..." />
+            <input v-model="localForm.title" placeholder="输入引人注目的标题..." />
           </div>
           <div class="form-group">
             <label>导入 Markdown</label>
@@ -97,12 +105,12 @@ const onSubmit = () => emit('submitArticle')
           <div class="form-group">
             <label>封面图</label>
             <div class="cover-upload-wrapper">
-              <div v-if="articleForm.cover" class="cover-preview">
-                <img :src="normalizeUrl(articleForm.cover)" />
-                <button class="btn-remove-cover" @click="articleForm.cover = ''">×</button>
+              <div v-if="localForm.cover" class="cover-preview">
+                <img :src="normalizeUrl(localForm.cover)" />
+                <button class="btn-remove-cover" @click="localForm.cover = ''">×</button>
               </div>
               <div class="cover-input-row">
-                <input v-model="articleForm.cover" placeholder="图片URL..." class="flex-grow" />
+                <input v-model="localForm.cover" placeholder="图片URL..." class="flex-grow" />
                 <button type="button" class="btn-upload">
                   上传
                   <input type="file" @change="onUploadCover" class="file-input" />
@@ -112,11 +120,11 @@ const onSubmit = () => emit('submitArticle')
           </div>
           <div class="form-group">
             <label>发布日期</label>
-            <input type="date" v-model="articleForm.date" />
+            <input type="date" v-model="localForm.date" />
           </div>
           <div class="form-group">
             <label>分类专栏</label>
-            <input v-model="articleForm.category" list="categories-list" placeholder="选择分类..." />
+            <input v-model="localForm.category" list="categories-list" placeholder="选择分类..." />
             <datalist id="categories-list">
               <option v-for="c in categories" :key="c" :value="c"></option>
             </datalist>
@@ -124,13 +132,13 @@ const onSubmit = () => emit('submitArticle')
           <div class="form-group">
             <label>标签 (逗号分隔)</label>
             <input v-model="articleTagsInput" placeholder="Vue, React, Life..." />
-            <div class="tags-preview" v-if="articleForm.tags?.length">
-              <span v-for="t in articleForm.tags" :key="t" class="chip">{{ t }}</span>
+            <div class="tags-preview" v-if="localForm.tags?.length">
+              <span v-for="t in localForm.tags" :key="t" class="chip">{{ t }}</span>
             </div>
           </div>
           <div class="form-group">
             <label>简短描述</label>
-            <textarea v-model="articleForm.description" rows="4" placeholder="用于SEO和列表展示..."></textarea>
+            <textarea v-model="localForm.description" rows="4" placeholder="用于SEO和列表展示..."></textarea>
           </div>
           <button class="action-btn submit-btn" @click="onSubmit" :disabled="loading">
             {{ loading ? (selectedSlug ? '更新中...' : '发布中...') : (selectedSlug ? '更新文章' : '发布文章') }}

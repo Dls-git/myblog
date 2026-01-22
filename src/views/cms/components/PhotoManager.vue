@@ -1,42 +1,84 @@
 
 <script setup>
-import { EditOutlined, DeleteOutlined } from '@ant-design/icons-vue'
+import { EditOutlined, DeleteOutlined, HolderOutlined } from '@ant-design/icons-vue'
+import draggable from 'vuedraggable'
 import { normalizeUrl } from '../utils'
+import { computed, ref } from 'vue'
 
 const props = defineProps({
-  listData: Array
+  listData: {
+    type: Array,
+    required: true
+  }
 })
 
-const emit = defineEmits(['editItem', 'deleteItem'])
+const emit = defineEmits(['editItem', 'deleteItem', 'update:listData'])
+
+const list = computed({
+  get: () => props.listData,
+  set: (value) => emit('update:listData', value)
+})
+
+const isDragging = ref(false)
+
+const onDragStart = () => {
+  isDragging.value = true
+}
+
+const onDragEnd = () => {
+  setTimeout(() => {
+    isDragging.value = false
+  }, 0)
+}
+
+const onCardClick = (index) => {
+  if (isDragging.value) return
+  emit('editItem', index)
+}
 </script>
 
 <template>
   <div class="cms-photos-container">
-    <div class="cms-photos-grid" v-if="listData.length > 0">
-      <div class="cms-photo-card-wrap cms-card-wrap" v-for="(item, index) in listData" :key="index">
-        <div class="cms-photo-card" @click="emit('editItem', index)">
-          <div class="photo-preview-wrapper" v-if="item.url">
-            <img :src="normalizeUrl(item.url)" :alt="item.title" class="photo-preview" loading="lazy" />
-          </div>
-          <div class="photo-info">
-            <h3 class="photo-title">{{ item.title || '无标题' }}</h3>
-            <p class="photo-desc" v-if="item.description">{{ item.description }}</p>
-            <div class="photo-footer">
-              <span class="photo-category" v-if="item.category">📁 {{ item.category }}</span>
-              <span class="photo-date" v-if="item.date">📅 {{ item.date }}</span>
+    <draggable 
+      v-if="list.length > 0"
+      v-model="list" 
+      class="cms-photos-grid"
+      item-key="_cms_id"
+      :animation="300"
+      :filter="'.cms-card-actions, .cms-action-btn, button'"
+      @start="onDragStart"
+      @end="onDragEnd"
+      ghost-class="ghost-card"
+    >
+      <template #item="{ element, index }">
+        <div class="cms-photo-card-wrap cms-card-wrap">
+          <div class="cms-photo-card" @click="onCardClick(index)">
+            <div class="photo-preview-wrapper" v-if="element.url">
+              <img :src="normalizeUrl(element.url)" :alt="element.title" class="photo-preview" loading="lazy" />
+            </div>
+            <div class="photo-info">
+              <h3 class="photo-title">{{ element.title || '无标题' }}</h3>
+              <p class="photo-desc" v-if="element.description">{{ element.description }}</p>
+              <div class="photo-footer">
+                <span class="photo-category" v-if="element.category">📁 {{ element.category }}</span>
+                <span class="photo-date" v-if="element.date">📅 {{ element.date }}</span>
+              </div>
             </div>
           </div>
+          <div class="cms-photo-actions cms-card-actions">
+            <div class="cms-action-btn drag-handle" title="拖拽排序">
+              <HolderOutlined />
+            </div>
+            <button class="cms-action-btn" @click.prevent="emit('editItem', index)" title="编辑">
+              <EditOutlined />
+            </button>
+            <button class="cms-action-btn danger" @click.prevent="emit('deleteItem', index)" title="删除">
+              <DeleteOutlined />
+            </button>
+          </div>
         </div>
-        <div class="cms-photo-actions cms-card-actions">
-          <button class="cms-action-btn" @click.prevent="emit('editItem', index)" title="编辑">
-            <EditOutlined />
-          </button>
-          <button class="cms-action-btn danger" @click.prevent="emit('deleteItem', index)" title="删除">
-            <DeleteOutlined />
-          </button>
-        </div>
-      </div>
-    </div>
+      </template>
+    </draggable>
     <div v-else class="empty-state">暂无数据，请点击上方新增</div>
   </div>
 </template>
@@ -52,13 +94,17 @@ const emit = defineEmits(['editItem', 'deleteItem'])
   gap: 24px;
 }
 
+.cms-card-wrap {
+  position: relative;
+}
+
 .cms-photo-card {
   background: rgb(var(--color-bg-primary));
   border-radius: 20px;
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
-  cursor: pointer;
+  cursor: grab;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -167,6 +213,21 @@ const emit = defineEmits(['editItem', 'deleteItem'])
   color: #ef4444;
   border-color: rgba(239, 68, 68, 0.35);
   background: rgba(239, 68, 68, 0.08);
+}
+
+.drag-handle {
+  cursor: grab;
+  color: rgb(var(--color-text-secondary));
+  
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.ghost-card {
+  opacity: 0.5;
+  background: rgb(var(--color-bg-secondary)) !important;
+  border: 2px dashed rgb(var(--color-accent)) !important;
 }
 
 .empty-state {

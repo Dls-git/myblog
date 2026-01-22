@@ -1,14 +1,17 @@
 
 <script setup>
+import { UndoOutlined, PlusOutlined } from '@ant-design/icons-vue'
+
 const props = defineProps({
   pageTitle: String,
   currentView: String,
   showPreview: Boolean,
   showMeta: Boolean,
-  isListView: Boolean
+  isListView: Boolean,
+  canUndo: Boolean
 })
 
-const emit = defineEmits(['update:showPreview', 'update:showMeta', 'openAddModal'])
+const emit = defineEmits(['update:showPreview', 'update:showMeta', 'openAddModal', 'openHistory'])
 </script>
 
 <template>
@@ -23,7 +26,32 @@ const emit = defineEmits(['update:showPreview', 'update:showMeta', 'openAddModal
           设置
         </button>
       </div>
-      <button v-if="isListView" class="action-btn" @click="emit('openAddModal')">新增项目</button>
+      <div v-if="currentView === 'article_list' || currentView === 'aboutData.js'" style="display: flex; gap: 12px; align-items: center">
+        <button 
+          v-if="canUndo" 
+          class="undo-btn" 
+          @click="emit('openHistory')" 
+          title="查看历史记录与回滚"
+        >
+          <UndoOutlined />
+          <span>历史</span>
+        </button>
+      </div>
+      <div v-else-if="isListView" style="display: flex; gap: 12px; align-items: center">
+        <button 
+          v-if="canUndo" 
+          class="undo-btn" 
+          @click="emit('openHistory')" 
+          title="查看历史记录与撤销"
+        >
+          <UndoOutlined />
+          <span>历史</span>
+        </button>
+        <button class="action-btn" @click="emit('openAddModal')">
+          <PlusOutlined />
+          <span>新增项目</span>
+        </button>
+      </div>
     </div>
   </header>
 </template>
@@ -71,6 +99,29 @@ const emit = defineEmits(['update:showPreview', 'update:showMeta', 'openAddModal
 
 .action-btn:hover {
   filter: brightness(0.95);
+}
+
+.undo-btn {
+  background: transparent;
+  color: rgb(var(--color-text-primary));
+  border: 1px solid rgb(var(--color-border-primary) / 0.8);
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+  font-size: 0.85rem;
+  opacity: 0.8;
+
+  &:hover {
+    background: rgb(var(--color-bg-secondary));
+    opacity: 1;
+    border-color: rgb(var(--color-accent) / 0.5);
+    color: rgb(var(--color-accent));
+  }
 }
 
 .btn-icon {

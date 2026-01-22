@@ -1,40 +1,63 @@
 
 <script setup>
-import { EditOutlined, DeleteOutlined } from '@ant-design/icons-vue'
+import { EditOutlined, DeleteOutlined, HolderOutlined } from '@ant-design/icons-vue'
+import draggable from 'vuedraggable'
 import { normalizeUrl } from '../utils'
+import { computed } from 'vue'
 
 const props = defineProps({
-  listData: Array
+  listData: {
+    type: Array,
+    required: true
+  }
 })
 
-const emit = defineEmits(['editItem', 'deleteItem'])
+const emit = defineEmits(['editItem', 'deleteItem', 'update:listData'])
+
+const list = computed({
+  get: () => props.listData,
+  set: (value) => emit('update:listData', value)
+})
 </script>
 
 <template>
   <div class="cms-friends-container">
-    <div class="cms-friends-grid" v-if="listData.length > 0">
-      <div class="cms-friend-card-wrap cms-card-wrap" v-for="(item, index) in listData" :key="index">
-        <div class="cms-friend-card">
-          <div class="avatar-wrapper">
-            <img v-if="item.avatar" :src="normalizeUrl(item.avatar)" :alt="item.name" class="avatar" />
-            <div v-else class="avatar-placeholder">{{ (item.name || 'F').charAt(0).toUpperCase() }}</div>
+    <draggable 
+      v-if="list.length > 0"
+      v-model="list" 
+      class="cms-friends-grid"
+      item-key="_cms_id"
+      handle=".drag-handle"
+      :animation="300"
+      ghost-class="ghost-card"
+    >
+      <template #item="{ element, index }">
+        <div class="cms-friend-card-wrap cms-card-wrap">
+          <div class="cms-friend-card">
+            <div class="avatar-wrapper">
+              <img v-if="element.avatar" :src="normalizeUrl(element.avatar)" :alt="element.name" class="avatar" />
+              <div v-else class="avatar-placeholder">{{ (element.name || 'F').charAt(0).toUpperCase() }}</div>
+            </div>
+            <div class="info">
+              <h3 class="name">{{ element.name || 'Friend' }}</h3>
+              <p class="desc" :title="element.desc">{{ element.desc }}</p>
+              <a class="link-text" :href="element.link" target="_blank" rel="noopener">{{ element.link }}</a>
+            </div>
           </div>
-          <div class="info">
-            <h3 class="name">{{ item.name || 'Friend' }}</h3>
-            <p class="desc" :title="item.desc">{{ item.desc }}</p>
-            <a class="link-text" :href="item.link" target="_blank" rel="noopener">{{ item.link }}</a>
+          <div class="cms-friend-actions cms-card-actions">
+            <div class="cms-action-btn drag-handle" title="拖拽排序">
+              <HolderOutlined />
+            </div>
+            <button class="cms-action-btn" @click.prevent="emit('editItem', index)" title="编辑">
+              <EditOutlined />
+            </button>
+            <button class="cms-action-btn danger" @click.prevent="emit('deleteItem', index)" title="删除">
+              <DeleteOutlined />
+            </button>
           </div>
         </div>
-        <div class="cms-friend-actions cms-card-actions">
-          <button class="cms-action-btn" @click.prevent="emit('editItem', index)" title="编辑">
-            <EditOutlined />
-          </button>
-          <button class="cms-action-btn danger" @click.prevent="emit('deleteItem', index)" title="删除">
-            <DeleteOutlined />
-          </button>
-        </div>
-      </div>
-    </div>
+      </template>
+    </draggable>
     <div v-else class="empty-state">暂无数据，请点击上方新增</div>
   </div>
 </template>
@@ -183,6 +206,21 @@ const emit = defineEmits(['editItem', 'deleteItem'])
   color: #ef4444;
   border-color: rgba(239, 68, 68, 0.35);
   background: rgba(239, 68, 68, 0.08);
+}
+
+.drag-handle {
+  cursor: grab;
+  color: rgb(var(--color-text-secondary));
+  
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.ghost-card {
+  opacity: 0.5;
+  background: rgb(var(--color-bg-secondary)) !important;
+  border: 2px dashed rgb(var(--color-accent)) !important;
 }
 
 .empty-state {

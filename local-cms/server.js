@@ -169,7 +169,33 @@ function listPosts() {
         }
     }
 
-    posts.sort((a, b) => String(b.date).localeCompare(String(a.date), 'zh-CN'));
+    const orderFilePath = path.join(DATA_JS_DIR, 'postOrder.js');
+    let orderedSlugs = [];
+    try {
+        if (fs.existsSync(orderFilePath)) {
+            const orderContent = fs.readFileSync(orderFilePath, 'utf-8');
+            const parsed = parseJsDataFile(orderContent);
+            if (Array.isArray(parsed)) {
+                orderedSlugs = parsed.map((s) => String(s || '').trim()).filter(Boolean);
+            }
+        }
+    } catch {
+        orderedSlugs = [];
+    }
+
+    const orderIndex = new Map();
+    orderedSlugs.forEach((slug, idx) => {
+        if (!orderIndex.has(slug)) orderIndex.set(slug, idx);
+    });
+
+    posts.sort((a, b) => {
+        const ai = orderIndex.has(a.slug) ? orderIndex.get(a.slug) : null;
+        const bi = orderIndex.has(b.slug) ? orderIndex.get(b.slug) : null;
+        if (ai != null && bi != null) return ai - bi;
+        if (ai != null) return -1;
+        if (bi != null) return 1;
+        return String(b.date).localeCompare(String(a.date), 'zh-CN');
+    });
     return posts;
 }
 
@@ -227,7 +253,8 @@ const FILE_VAR_MAP = {
     'photos.js': 'photos',
     'quotes.js': 'quotes',
     'thoughts.js': 'thoughts',
-    'aboutData.js': 'qaList' // aboutData 比较特殊
+    'aboutData.js': 'qaList',
+    'postOrder.js': 'postOrder'
 };
 
 const server = http.createServer((req, res) => {
