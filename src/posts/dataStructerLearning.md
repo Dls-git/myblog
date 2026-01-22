@@ -2,13 +2,13 @@
 title: 数据结构学习
 description: 写leetcode小计
 date: '2025-10-01'
-category: 数据结构
+category: 算法与数据结构
 tags:
   - data
   - Markdown
   - 算法
 cover: ''
-updated: '2026-01-21'
+updated: '2026-01-22'
 wordCount: 7524
 readingTime: 19
 ---

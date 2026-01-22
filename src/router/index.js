@@ -77,11 +77,6 @@ const router = createRouter({
             component: () => import('@/views/cms/LocalCmsPage.vue'),
             meta: { title: '后台管理' }
         },
-        {
-            path: '/cms/articles',
-            component: () => import('@/views/cms/ArticleManagerPage.vue'),
-            meta: { title: '文章管理' }
-        },
         // 404 页面配置
         {
             path: '/:pathMatch(.*)*', // 匹配所有未定义路由
