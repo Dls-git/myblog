@@ -1,6 +1,20 @@
 
 <script setup>
-import { CloudUploadOutlined } from '@ant-design/icons-vue'
+import { 
+  CloudUploadOutlined, 
+  DashboardOutlined, 
+  EditOutlined, 
+  UnorderedListOutlined,
+  PictureOutlined,
+  TagOutlined,
+  TeamOutlined,
+  CameraOutlined,
+  MessageOutlined,
+  ThunderboltOutlined,
+  InfoCircleOutlined,
+  ClusterOutlined,
+  SettingOutlined
+} from '@ant-design/icons-vue'
 
 const props = defineProps({
   currentView: String,
@@ -23,35 +37,54 @@ const setView = (view) => {
 
     <div class="nav-scroll">
       <div class="nav-group">
+        <div class="nav-title">General</div>
+        <div class="nav-item" :class="{ active: currentView === 'dashboard' }" @click="setView('dashboard')">
+          <DashboardOutlined /> 控制面板
+        </div>
+        <div class="nav-item" :class="{ active: currentView === 'knowledge_graph' }" @click="setView('knowledge_graph')">
+          <ClusterOutlined /> 知识图谱
+        </div>
+      </div>
+
+      <div class="nav-group">
         <div class="nav-title">Content</div>
         <div class="nav-item" :class="{ active: currentView === 'article' && !selectedSlug }" @click="setView('article')">
-          写文章
+          <EditOutlined /> 写文章
         </div>
         <div class="nav-item" :class="{ active: currentView === 'article_list' }" @click="setView('article_list')">
-          文章管理
+          <UnorderedListOutlined /> 文章管理
+        </div>
+        <div class="nav-item" :class="{ active: currentView === 'media_manager' }" @click="setView('media_manager')">
+          <PictureOutlined /> 媒体库
+        </div>
+        <div class="nav-item" :class="{ active: currentView === 'taxonomy_manager' }" @click="setView('taxonomy_manager')">
+          <TagOutlined /> 标签分类
         </div>
       </div>
 
       <div class="nav-group">
         <div class="nav-title">Data Modules</div>
         <div class="nav-item" :class="{ active: currentView === 'friendList.js' }" @click="setView('friendList.js')">
-          友链管理
+          <TeamOutlined /> 友链管理
         </div>
         <div class="nav-item" :class="{ active: currentView === 'photos.js' }" @click="setView('photos.js')">
-          摄影相册
+          <CameraOutlined /> 摄影相册
         </div>
         <div class="nav-item" :class="{ active: currentView === 'quotes.js' }" @click="setView('quotes.js')">
-          语录收藏
+          <MessageOutlined /> 语录收藏
         </div>
         <div class="nav-item" :class="{ active: currentView === 'thoughts.js' }" @click="setView('thoughts.js')">
-          碎碎念
+          <ThunderboltOutlined /> 碎碎念
         </div>
       </div>
 
       <div class="nav-group">
         <div class="nav-title">System</div>
         <div class="nav-item" :class="{ active: currentView === 'aboutData.js' }" @click="setView('aboutData.js')">
-          关于页 (JSON)
+          <InfoCircleOutlined /> 关于页 (JSON)
+        </div>
+        <div class="nav-item" :class="{ active: currentView === 'system_manager' }" @click="setView('system_manager')">
+          <SettingOutlined /> 系统维护
         </div>
         <div class="nav-item git-publish-item" @click="emit('openGitModal')">
           <CloudUploadOutlined />

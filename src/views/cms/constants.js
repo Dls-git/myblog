@@ -34,7 +34,11 @@ export const VIEW_TITLES = {
   'photos.js': '照片',
   'quotes.js': '语录收藏',
   'thoughts.js': '动态',
-  'aboutData.js': '关于我 (配置)'
+  'aboutData.js': '关于我 (配置)',
+  media_manager: '媒体库管理',
+  taxonomy_manager: '分类标签管理',
+  knowledge_graph: '知识图谱',
+  system_manager: '系统维护'
 }
 
 export const aboutTypeOptions = [

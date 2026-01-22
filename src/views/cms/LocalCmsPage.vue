@@ -7,7 +7,8 @@ import {
   CloseOutlined, 
   DeleteOutlined, 
   EditOutlined,
-  CloudUploadOutlined 
+  CloudUploadOutlined,
+  CopyOutlined 
 } from '@ant-design/icons-vue'
 
 // Import components
@@ -20,6 +21,11 @@ import PhotoManager from './components/PhotoManager.vue'
 import QuoteManager from './components/QuoteManager.vue'
 import ThoughtManager from './components/ThoughtManager.vue'
 import AboutManager from './components/AboutManager.vue'
+import MediaManager from './components/MediaManager.vue'
+import Dashboard from './components/Dashboard.vue'
+import TaxonomyManager from './components/TaxonomyManager.vue'
+import KnowledgeGraph from './components/KnowledgeGraph.vue'
+import SystemManager from './components/SystemManager.vue'
 import FriendCard from '../friends/friend-card.vue'
 
 // Import Utils & Constants
@@ -77,9 +83,28 @@ const handleGitPublish = async () => {
 }
 
 // Global State
-const currentView = ref('article')
+const currentView = ref('dashboard')
 const loading = ref(false)
+const mediaFiles = ref([])
 const toast = reactive({ show: false, msg: '', type: 'success' })
+
+const loadMedia = async () => {
+  try {
+    const res = await apiFetch('/api/media')
+    if (res.ok) mediaFiles.value = await res.json()
+  } catch (err) {
+    console.error('Failed to load media:', err)
+  }
+}
+
+const handleNavigate = (view, slug = null) => {
+  currentView.value = view
+  if (view === 'article' && slug) {
+    openPost(slug)
+  } else if (view === 'article' && !slug) {
+    resetArticleForm()
+  }
+}
 
 const showToast = (msg, type = 'success') => {
   toast.msg = msg
@@ -99,11 +124,12 @@ const isListView = computed(() => currentView.value.endsWith('.js') && currentVi
 const currentFields = computed(() => SCHEMAS[currentView.value] || [])
 
 // Article Logic
-const articleForm = reactive({
+const articleForm = ref({
   title: '',
   description: '',
   cover: '',
   date: new Date().toISOString().split('T')[0],
+  status: 'published',
   category: '',
   tags: [],
   content: ''
@@ -118,7 +144,8 @@ const filteredPosts = computed(() => {
   if (!q) return posts.value
   return posts.value.filter((p) => 
     String(p.title || '').toLowerCase().includes(q) || 
-    String(p.slug || '').toLowerCase().includes(q)
+    String(p.slug || '').toLowerCase().includes(q) ||
+    String(p.content || '').toLowerCase().includes(q) // 支持全文搜索
   )
 })
 
@@ -236,19 +263,35 @@ const handleUpdatePosts = async (nextList) => {
   if (ok) showToast('文章排序已保存')
 }
 
-const deletePost = async (slug) => {
-  if (!window.confirm(`确定要删除文章 "${slug}" 吗？此操作不可撤销。`)) return
+const deletePost = (slug) => handleBatchDeletePosts([slug])
+
+const handleBatchDeletePosts = async (slugs) => {
+  if (!slugs || slugs.length === 0) return
+  if (!window.confirm(`确定要删除选中的 ${slugs.length} 篇文章吗？此操作不可撤销。`)) return
+  
   loading.value = true
   try {
-    const res = await apiFetch(`/api/post?slug=${encodeURIComponent(slug)}`, {
-      method: 'DELETE'
-    })
-    const json = await res.json()
-    if (!res.ok || !json?.success) throw new Error(json?.message || 'delete failed')
-    showToast('文章已删除')
+    // 串行或并行删除
+    const results = await Promise.all(slugs.map(async (slug) => {
+      try {
+        const res = await apiFetch(`/api/post?slug=${encodeURIComponent(slug)}`, {
+          method: 'DELETE'
+        })
+        return res.ok
+      } catch {
+        return false
+      }
+    }))
+    
+    const successCount = results.filter(Boolean).length
+    if (successCount === slugs.length) {
+      showToast(`成功删除 ${successCount} 篇文章`)
+    } else {
+      showToast(`部分文章删除失败 (成功: ${successCount}, 失败: ${slugs.length - successCount})`, 'error')
+    }
     await loadPosts()
   } catch (e) {
-    showToast('删除失败: ' + e.message, 'error')
+    showToast('批量删除失败: ' + e.message, 'error')
   } finally {
     loading.value = false
   }
@@ -256,13 +299,16 @@ const deletePost = async (slug) => {
 
 const resetArticleForm = () => {
   selectedSlug.value = ''
-  articleForm.title = ''
-  articleForm.description = ''
-  articleForm.cover = ''
-  articleForm.date = new Date().toISOString().split('T')[0]
-  articleForm.category = ''
-  articleForm.tags = []
-  articleForm.content = ''
+  articleForm.value = {
+    title: '',
+    description: '',
+    cover: '',
+    date: new Date().toISOString().split('T')[0],
+    status: 'published',
+    category: '',
+    tags: [],
+    content: ''
+  }
 }
 
 const openPost = async (slug) => {
@@ -275,13 +321,16 @@ const openPost = async (slug) => {
     if (!res.ok || !json?.success) throw new Error(json?.message || 'load failed')
     const data = json.data || {}
     selectedSlug.value = s
-    articleForm.title = String(data.title ?? '')
-    articleForm.description = String(data.description ?? '')
-    articleForm.cover = String(data.cover ?? '')
-    articleForm.date = String(data.date ?? '').slice(0, 10)
-    articleForm.category = String(data.category ?? '')
-    articleForm.tags = Array.isArray(data.tags) ? data.tags : []
-    articleForm.content = String(json.content ?? '')
+    articleForm.value = {
+      title: String(data.title ?? ''),
+      description: String(data.description ?? ''),
+      cover: String(data.cover ?? ''),
+      date: String(data.date ?? '').slice(0, 10),
+      status: String(data.status ?? 'published'),
+      category: String(data.category ?? ''),
+      tags: Array.isArray(data.tags) ? data.tags : [],
+      content: String(json.content ?? '')
+    }
     currentView.value = 'article'
   } catch {
     showToast('文章读取失败', 'error')
@@ -526,19 +575,23 @@ const applyImportedMarkdown = (markdownText, fileName = '') => {
   const parsed = parseFrontmatter(markdownText)
   if (parsed) {
     const fm = parsed.frontmatter || {}
-    if (fm.title) articleForm.title = fm.title
-    if (fm.description) articleForm.description = fm.description
-    if (fm.cover) articleForm.cover = fm.cover
-    if (fm.category) articleForm.category = fm.category
-    if (fm.date) articleForm.date = String(fm.date).slice(0, 10)
-    if (Array.isArray(fm.tags)) articleForm.tags = fm.tags
-    articleForm.content = parsed.body
+    const nextForm = { ...articleForm.value }
+    if (fm.title) nextForm.title = fm.title
+    if (fm.description) nextForm.description = fm.description
+    if (fm.cover) nextForm.cover = fm.cover
+    if (fm.category) nextForm.category = fm.category
+    if (fm.date) nextForm.date = String(fm.date).slice(0, 10)
+    if (Array.isArray(fm.tags)) nextForm.tags = fm.tags
+    nextForm.content = parsed.body
+    articleForm.value = nextForm
   } else {
-    if (!articleForm.title && fileName) {
+    const nextForm = { ...articleForm.value }
+    if (!nextForm.title && fileName) {
       const base = fileName.replace(/\.(md|markdown)$/i, '')
-      if (base) articleForm.title = base
+      if (base) nextForm.title = base
     }
-    articleForm.content = String(markdownText ?? '')
+    nextForm.content = String(markdownText ?? '')
+    articleForm.value = nextForm
   }
 }
 
@@ -605,7 +658,7 @@ const handlePaste = async (event) => {
       const file = item.getAsFile()
       await uploadFileGeneric(file, (url) => {
         const imgMd = `\n![image](${url})\n`
-        articleForm.content += imgMd
+        articleForm.value.content += imgMd
       })
     }
   }
@@ -623,7 +676,7 @@ const uploadCover = async (event) => {
   const file = event.target.files[0]
   if (!file) return
   await uploadFileGeneric(file, (url) => {
-    articleForm.cover = url
+    articleForm.value.cover = url
   })
 }
 
@@ -632,26 +685,33 @@ const uploadFileGeneric = async (file, onSuccess) => {
   try {
     const res = await apiFetch('/api/upload', {
       method: 'POST',
-      headers: { 'X-File-Name': fileName },
+      headers: { 
+        'X-File-Name': encodeURIComponent(fileName) 
+      },
       body: file
     })
     const result = await res.json()
-    if (result.success) onSuccess(result.url)
-    else showToast('上传失败', 'error')
-  } catch {
-    showToast('网络错误', 'error')
+    if (result.success) {
+      onSuccess(result.url)
+      showToast('上传成功')
+    } else {
+      showToast(`上传失败: ${result.message || ''}`, 'error')
+    }
+  } catch (err) {
+    showToast(`网络错误: ${err.message}`, 'error')
   }
 }
 
-const submitArticle = async () => {
-  if (!articleForm.title) return showToast('请填写标题', 'error')
+const submitArticle = async (formData) => {
+  const currentForm = formData || articleForm.value
+  if (!currentForm.title) return showToast('请填写标题', 'error')
   loading.value = true
   try {
     let res;
     if (selectedSlug.value) {
       const payload = {
-        data: { ...articleForm },
-        content: articleForm.content
+        data: { ...currentForm },
+        content: currentForm.content
       }
       res = await apiFetch(`/api/post?slug=${encodeURIComponent(selectedSlug.value)}`, {
         method: 'PUT',
@@ -662,7 +722,7 @@ const submitArticle = async () => {
       res = await apiFetch('/api/save', { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(articleForm) 
+        body: JSON.stringify(currentForm) 
       })
     }
 
@@ -734,6 +794,20 @@ const editItem = (index) => {
   isEdit.value = true
   editingIndex.value = index
   editingItem.value = JSON.parse(JSON.stringify(listData.value[index]))
+  showModal.value = true
+}
+
+const cloneItem = (index) => {
+  isEdit.value = false
+  editingIndex.value = -1
+  const source = JSON.parse(JSON.stringify(listData.value[index]))
+  // 移除唯一标识
+  delete source._cms_id
+  if (source.id) source.id = Date.now()
+  if (source.title) source.title += ' (副本)'
+  if (source.name) source.name += ' (副本)'
+  
+  editingItem.value = source
   showModal.value = true
 }
 
@@ -877,6 +951,7 @@ const saveAboutItem = async () => {
 onMounted(() => {
   loadCategories()
   loadPosts()
+  loadMedia()
 })
 </script>
 
@@ -903,12 +978,27 @@ onMounted(() => {
         />
 
         <div class="content-area">
+          <Dashboard 
+            v-if="currentView === 'dashboard'"
+            :posts="posts"
+            :media="mediaFiles"
+            :categories="categories"
+            @navigate="handleNavigate"
+          />
+
+          <KnowledgeGraph 
+            v-else-if="currentView === 'knowledge_graph'"
+            :posts="posts"
+            @navigate="handleNavigate"
+          />
+
           <ArticleList 
-            v-if="currentView === 'article_list'"
+            v-else-if="currentView === 'article_list'"
             :filteredPosts="filteredPosts"
             v-model:query="query"
             @openPost="openPost"
             @deletePost="deletePost"
+            @batchDelete="handleBatchDeletePosts"
             @createNewArticle="currentView = 'article'; resetArticleForm()"
             @update:filteredPosts="handleUpdatePosts"
           />
@@ -932,6 +1022,7 @@ onMounted(() => {
               v-if="currentView === 'friendList.js'"
               :listData="listData"
               @editItem="editItem"
+              @cloneItem="cloneItem"
               @deleteItem="deleteItem"
               @update:listData="val => { listData = val; pushHistory(val, '重新排序友链'); saveDataToServer() }"
             />
@@ -939,6 +1030,7 @@ onMounted(() => {
               v-else-if="currentView === 'photos.js'"
               :listData="listData"
               @editItem="editItem"
+              @cloneItem="cloneItem"
               @deleteItem="deleteItem"
               @update:listData="val => { listData = val; pushHistory(val, '重新排序相册'); saveDataToServer() }"
             />
@@ -948,6 +1040,7 @@ onMounted(() => {
               :editingQuoteIndex="editingQuoteIndex"
               v-model:quoteDraft="quoteDraft"
               @startEditQuote="startEditQuote"
+              @cloneItem="cloneItem"
               @cancelEditQuote="cancelEditQuote"
               @saveEditQuote="saveEditQuote"
               @deleteItem="deleteItem"
@@ -972,6 +1065,21 @@ onMounted(() => {
             @openAboutAddModal="openAboutAddModal"
             @saveAboutData="saveAboutData"
             @update:listData="val => { listData = val; pushHistory(val, '重新排序关于卡片'); saveAboutData() }"
+          />
+
+          <MediaManager 
+            v-else-if="currentView === 'media_manager'"
+          />
+
+          <TaxonomyManager 
+            v-else-if="currentView === 'taxonomy_manager'"
+            :posts="posts"
+            :categories="categories"
+            @refresh="() => { loadPosts(); loadCategories(); }"
+          />
+
+          <SystemManager 
+            v-else-if="currentView === 'system_manager'"
           />
         </div>
       </main>

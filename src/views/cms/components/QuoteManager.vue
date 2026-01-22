@@ -1,6 +1,6 @@
 
 <script setup>
-import { EditOutlined, DeleteOutlined, CheckOutlined, CloseOutlined, HolderOutlined } from '@ant-design/icons-vue'
+import { EditOutlined, DeleteOutlined, CheckOutlined, CloseOutlined, HolderOutlined, CopyOutlined } from '@ant-design/icons-vue'
 import draggable from 'vuedraggable'
 import { computed, ref } from 'vue'
 
@@ -16,7 +16,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['startEditQuote', 'cancelEditQuote', 'saveEditQuote', 'deleteItem', 'update:listData', 'update:quoteDraft'])
+const emit = defineEmits(['startEditQuote', 'cloneItem', 'cancelEditQuote', 'saveEditQuote', 'deleteItem', 'update:listData', 'update:quoteDraft'])
 
 const list = computed({
   get: () => props.listData,
@@ -129,6 +129,14 @@ const onCardClick = (index) => {
               title="编辑"
             >
               <EditOutlined />
+            </button>
+            <button
+              v-if="editingQuoteIndex !== index"
+              class="cms-action-btn"
+              @click.stop="emit('cloneItem', index)"
+              title="克隆"
+            >
+              <CopyOutlined />
             </button>
             <button class="cms-action-btn danger" @click.stop="emit('deleteItem', index)" title="删除">
               <DeleteOutlined />

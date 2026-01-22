@@ -6,6 +6,8 @@ import { fileURLToPath } from 'url';
 import { exec } from 'child_process';
 import matter from 'gray-matter';
 import { promisify } from 'util';
+import sharp from 'sharp';
+import archiver from 'archiver';
 
 const execPromise = promisify(exec);
 
@@ -17,6 +19,68 @@ const POSTS_DIR = path.join(__dirname, '../src/posts');
 const DATA_JS_DIR = path.join(__dirname, '../src/posts/dataJs');
 const UPLOADS_DIR = path.join(__dirname, '../public/uploads');
 const ASSETS_DIR = path.join(__dirname, '../src/assets');
+
+// 媒体使用分析辅助函数
+function getMediaUsageMap() {
+    const usageMap = {}; // { url: [{ type: 'post'|'data', name: 'xxx', path: 'xxx' }] }
+    
+    // 1. 扫描 Markdown 文章
+    if (fs.existsSync(POSTS_DIR)) {
+        const posts = fs.readdirSync(POSTS_DIR).filter(f => f.endsWith('.md'));
+        posts.forEach(file => {
+            const content = fs.readFileSync(path.join(POSTS_DIR, file), 'utf-8');
+            // 匹配 Markdown 图片语法: ![alt](url)
+            const mdImageRegex = /!\[.*?\]\((.*?)\)/g;
+            // 匹配 Frontmatter 中的 cover 字段
+            const fmCoverRegex = /cover:\s*['"]?(.*?)['"]?\s*$/m;
+            
+            let match;
+            while ((match = mdImageRegex.exec(content)) !== null) {
+                const url = match[1];
+                if (!usageMap[url]) usageMap[url] = [];
+                usageMap[url].push({ type: 'post', name: file.replace('.md', ''), file });
+            }
+            
+            const fmMatch = fmCoverRegex.exec(content);
+            if (fmMatch && fmMatch[1]) {
+                const url = fmMatch[1];
+                if (!usageMap[url]) usageMap[url] = [];
+                usageMap[url].push({ type: 'post', name: file.replace('.md', ''), file });
+            }
+        });
+    }
+
+    // 2. 扫描 JS 数据文件 (相册、友链等)
+    if (fs.existsSync(DATA_JS_DIR)) {
+        const dataFiles = fs.readdirSync(DATA_JS_DIR).filter(f => f.endsWith('.js'));
+        dataFiles.forEach(file => {
+            const content = fs.readFileSync(path.join(DATA_JS_DIR, file), 'utf-8');
+            // 匹配引号中的 URL
+            const urlRegex = /['"](\/(?:uploads|assets)\/.*?)['"]/g;
+            // 匹配 new URL('...', import.meta.url)
+            const newUrlRegex = /new\s+URL\s*\(\s*['"](.*?)['"]\s*,\s*import\.meta\.url\s*\)/g;
+
+            let match;
+            while ((match = urlRegex.exec(content)) !== null) {
+                const url = match[1];
+                if (!usageMap[url]) usageMap[url] = [];
+                usageMap[url].push({ type: 'data', name: file, file });
+            }
+            while ((match = newUrlRegex.exec(content)) !== null) {
+                let url = match[1];
+                // 转换相对路径为显示路径
+                if (url.includes('assets/')) {
+                    const assetName = url.split('assets/').pop();
+                    url = `/assets/${assetName}`;
+                }
+                if (!usageMap[url]) usageMap[url] = [];
+                usageMap[url].push({ type: 'data', name: file, file });
+            }
+        });
+    }
+
+    return usageMap;
+}
 
 // 确保目录存在
 if (!fs.existsSync(UPLOADS_DIR)) {
@@ -132,42 +196,45 @@ function listPosts() {
 
     const entries = fs.readdirSync(POSTS_DIR, { withFileTypes: true });
     const posts = [];
-
-    for (const entry of entries) {
-        if (!entry.isFile()) continue;
-        if (!entry.name.toLowerCase().endsWith('.md')) continue;
-        if (entry.name.toLowerCase() === 'all.md') continue;
-
-        const slug = entry.name.replace(/\.md$/i, '');
-        const filePath = path.join(POSTS_DIR, entry.name);
-        if (!isSafePathInside(POSTS_DIR, filePath)) continue;
-
-        try {
-            const raw = fs.readFileSync(filePath, 'utf-8');
-            const { data } = matter(raw);
-            posts.push({
-                slug,
-                title: String(data?.title ?? slug),
-                description: String(data?.description ?? ''),
-                date: String(data?.date ?? ''),
-                updated: String(data?.updated ?? ''),
-                category: String(data?.category ?? ''),
-                tags: Array.isArray(data?.tags) ? data.tags.map((t) => String(t)) : [],
-                cover: String(data?.cover ?? '')
-            });
-        } catch {
-            posts.push({
-                slug,
-                title: slug,
-                description: '',
-                date: '',
-                updated: '',
-                category: '',
-                tags: [],
-                cover: ''
-            });
-        }
-    }
+        
+                for (const entry of entries) {
+                    if (!entry.isFile()) continue;
+                    if (!entry.name.toLowerCase().endsWith('.md')) continue;
+                    if (entry.name.toLowerCase() === 'all.md') continue;
+        
+                    const slug = entry.name.replace(/\.md$/i, '');
+                    const filePath = path.join(POSTS_DIR, entry.name);
+                    if (!isSafePathInside(POSTS_DIR, filePath)) continue;
+        
+                    try {
+                        const raw = fs.readFileSync(filePath, 'utf-8');
+                        const { data, content } = matter(raw);
+                        posts.push({
+                            slug,
+                            title: String(data?.title ?? slug),
+                            description: String(data?.description ?? ''),
+                            date: String(data?.date ?? ''),
+                            status: String(data?.status ?? 'published'),
+                            updated: String(data?.updated ?? ''),
+                            category: String(data?.category ?? ''),
+                            tags: Array.isArray(data?.tags) ? data.tags.map((t) => String(t)) : [],
+                            cover: String(data?.cover ?? ''),
+                            content: content // 增加 content 字段以支持全文搜索
+                        });
+                    } catch {
+                        posts.push({
+                            slug,
+                            title: slug,
+                            description: '',
+                            date: '',
+                            status: 'published',
+                            updated: '',
+                            category: '',
+                            tags: [],
+                            cover: ''
+                        });
+                    }
+                }
 
     const orderFilePath = path.join(DATA_JS_DIR, 'postOrder.js');
     let orderedSlugs = [];
@@ -257,7 +324,7 @@ const FILE_VAR_MAP = {
     'postOrder.js': 'postOrder'
 };
 
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
     // 设置 CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
@@ -357,6 +424,7 @@ const server = http.createServer((req, res) => {
 title: ${data.title}
 description: ${data.description || ''}
 date: ${data.date}
+status: ${data.status || 'published'}
 category: ${data.category || '未分类'}
 tags:
 ${data.tags.map(tag => `  - ${tag}`).join('\n')}
@@ -445,16 +513,19 @@ ${data.content}`;
                     const payload = JSON.parse(body || '{}');
                     const content = String(payload.content ?? '');
                     const incoming = payload.data && typeof payload.data === 'object' ? payload.data : {};
+                    // 排除 content 字段，避免污染 Frontmatter
+                    const { content: _, ...cleanIncoming } = incoming;
 
                     const wordCount = Number(incoming.wordCount) || estimateWordCount(content);
                     const readingTime = Number(incoming.readingTime) || estimateReadingTimeMinutes(wordCount);
                     const now = new Date().toISOString().split('T')[0];
 
                     const merged = {
-                        ...incoming,
+                        ...cleanIncoming,
                         title: String(incoming.title ?? '').trim(),
                         description: String(incoming.description ?? ''),
                         date: String(incoming.date ?? ''),
+                        status: String(incoming.status || 'published'),
                         category: String(incoming.category ?? ''),
                         tags: Array.isArray(incoming.tags) ? incoming.tags : [],
                         cover: String(incoming.cover ?? ''),
@@ -563,24 +634,335 @@ ${data.content}`;
         return;
     }
 
-    // 5. 上传图片 API
-    if (parsedUrl.pathname === '/api/upload' && req.method === 'POST') {
-        const fileName = req.headers['x-file-name'] || `image-${Date.now()}.png`;
-        const filePath = path.join(UPLOADS_DIR, fileName);
-        const fileStream = fs.createWriteStream(filePath);
-
-        req.pipe(fileStream);
-
-        fileStream.on('finish', () => {
-            const publicPath = `/uploads/${fileName}`;
+    // 4.5 获取 Git 历史记录
+    if (parsedUrl.pathname === '/api/git/history' && req.method === 'GET') {
+        try {
+            const { stdout } = await execPromise('git log -n 20 --pretty=format:"%H|%an|%ar|%s"');
+            const history = stdout.split('\n').filter(Boolean).map(line => {
+                const [hash, author, date, message] = line.split('|');
+                return { hash, author, date, message };
+            });
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ success: true, url: publicPath }));
+            res.end(JSON.stringify({ success: true, history }));
+        } catch (e) {
+            res.writeHead(500);
+            res.end(JSON.stringify({ success: false, message: e.message }));
+        }
+        return;
+    }
+
+    // 4.6 Git 回滚 API
+    if (parsedUrl.pathname === '/api/git/rollback' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', async () => {
+            try {
+                const { hash } = JSON.parse(body);
+                if (!hash) throw new Error('Commit hash is required');
+                
+                console.log(`\n🔙 正在执行回滚到: ${hash}...`);
+                // 强制重置到指定提交
+                await execPromise(`git reset --hard ${hash}`);
+                
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, message: 'Rollback successful' }));
+            } catch (e) {
+                console.error('❌ 回滚失败:', e);
+                res.writeHead(500);
+                res.end(JSON.stringify({ success: false, message: e.message }));
+            }
+        });
+        return;
+    }
+
+    // 4.7 系统备份 API (生成 ZIP)
+    if (parsedUrl.pathname === '/api/system/backup' && req.method === 'GET') {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const fileName = `blog-backup-${timestamp}.zip`;
+        
+        res.writeHead(200, {
+            'Content-Type': 'application/zip',
+            'Content-Disposition': `attachment; filename="${fileName}"`
         });
 
-        fileStream.on('error', (err) => {
-            res.writeHead(500);
-            res.end(JSON.stringify({ success: false, message: err.message }));
+        const archive = archiver('zip', { zlib: { level: 9 } });
+        archive.on('error', (err) => { throw err; });
+        archive.pipe(res);
+
+        // 备份核心内容
+        if (fs.existsSync(POSTS_DIR)) archive.directory(POSTS_DIR, 'content/posts');
+        if (fs.existsSync(DATA_DIR)) archive.directory(DATA_DIR, 'content/data');
+        if (fs.existsSync(UPLOADS_DIR)) archive.directory(UPLOADS_DIR, 'public/uploads');
+
+        archive.finalize();
+        return;
+    }
+
+    // 4.8 分类/标签重命名 API
+    if (parsedUrl.pathname === '/api/taxonomy/rename' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', async () => {
+            try {
+                const { type, oldName, newName } = JSON.parse(body);
+                if (!oldName || !newName) throw new Error('Invalid params');
+
+                const posts = fs.readdirSync(POSTS_DIR).filter(f => f.endsWith('.md'));
+                let updatedCount = 0;
+
+                posts.forEach(file => {
+                    const filePath = path.join(POSTS_DIR, file);
+                    const raw = fs.readFileSync(filePath, 'utf-8');
+                    const { data, content } = matter(raw);
+                    let changed = false;
+
+                    if (type === 'category' && data.category === oldName) {
+                        data.category = newName;
+                        changed = true;
+                    } else if (type === 'tag' && Array.isArray(data.tags)) {
+                        const idx = data.tags.indexOf(oldName);
+                        if (idx !== -1) {
+                            data.tags[idx] = newName;
+                            changed = true;
+                        }
+                    }
+
+                    if (changed) {
+                        fs.writeFileSync(filePath, matter.stringify(content, data));
+                        updatedCount++;
+                    }
+                });
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, updatedCount }));
+            } catch (e) {
+                res.writeHead(500);
+                res.end(JSON.stringify({ success: false, message: e.message }));
+            }
         });
+        return;
+    }
+
+    // 4.6 分类/标签删除 API
+    if (parsedUrl.pathname === '/api/taxonomy/delete' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', async () => {
+            try {
+                const { type, name } = JSON.parse(body);
+                if (!name) throw new Error('Invalid params');
+
+                const posts = fs.readdirSync(POSTS_DIR).filter(f => f.endsWith('.md'));
+                let updatedCount = 0;
+
+                posts.forEach(file => {
+                    const filePath = path.join(POSTS_DIR, file);
+                    const raw = fs.readFileSync(filePath, 'utf-8');
+                    const { data, content } = matter(raw);
+                    let changed = false;
+
+                    if (type === 'category' && data.category === name) {
+                        data.category = '未分类';
+                        changed = true;
+                    } else if (type === 'tag' && Array.isArray(data.tags)) {
+                        const idx = data.tags.indexOf(name);
+                        if (idx !== -1) {
+                            data.tags.splice(idx, 1);
+                            changed = true;
+                        }
+                    }
+
+                    if (changed) {
+                        fs.writeFileSync(filePath, matter.stringify(content, data));
+                        updatedCount++;
+                    }
+                });
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, updatedCount }));
+            } catch (e) {
+                res.writeHead(500);
+                res.end(JSON.stringify({ success: false, message: e.message }));
+            }
+        });
+        return;
+    }
+
+    // 5. 上传图片 API (带自动化压缩与 WebP 转换)
+    if (parsedUrl.pathname === '/api/upload' && req.method === 'POST') {
+        const rawFileName = req.headers['x-file-name'];
+        let fileName = `image-${Date.now()}.png`;
+        
+        if (rawFileName) {
+            try {
+                fileName = decodeURIComponent(rawFileName).replace(/[\\/:*?"<>|]/g, '-');
+            } catch (e) {
+                fileName = rawFileName.replace(/[\\/:*?"<>|]/g, '-');
+            }
+        }
+
+        // 强制转换为 webp 以优化性能
+        const baseName = path.parse(fileName).name;
+        const webpName = `${baseName}-${Date.now()}.webp`;
+        const filePath = path.join(UPLOADS_DIR, webpName);
+        
+        if (!isSafePathInside(UPLOADS_DIR, filePath)) {
+            res.writeHead(403);
+            res.end(JSON.stringify({ success: false, message: 'Forbidden' }));
+            return;
+        }
+
+        // 使用 sharp 进行流式处理
+        const transformer = sharp()
+            .webp({ quality: 80 }) // 转换为 webp，质量设为 80
+            .resize(2000, 2000, { fit: 'inside', withoutEnlargement: true }); // 限制最大尺寸
+
+        const chunks = [];
+        req.on('data', chunk => chunks.push(chunk));
+        req.on('end', async () => {
+            try {
+                const buffer = Buffer.concat(chunks);
+                await transformer.putObject ? null : null; // dummy
+                
+                await sharp(buffer)
+                    .webp({ quality: 80 })
+                    .resize(2000, 2000, { fit: 'inside', withoutEnlargement: true })
+                    .toFile(filePath);
+
+                const publicPath = `/uploads/${webpName}`;
+                console.log(`文件自动化处理完成: ${publicPath}`);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, url: publicPath }));
+            } catch (err) {
+                console.error('Sharp processing error:', err);
+                // 如果 sharp 失败（比如不是图片），尝试直接保存
+                try {
+                    fs.writeFileSync(filePath, Buffer.concat(chunks));
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, url: `/uploads/${webpName}` }));
+                } catch (writeErr) {
+                    res.writeHead(500);
+                    res.end(JSON.stringify({ success: false, message: writeErr.message }));
+                }
+            }
+        });
+        return;
+    }
+
+    // 5.1 获取媒体库文件列表
+    if (parsedUrl.pathname === '/api/media' && req.method === 'GET') {
+        try {
+            const usageMap = getMediaUsageMap();
+            
+            const allFiles = [];
+
+            // 1. 读取 uploads 目录
+            if (fs.existsSync(UPLOADS_DIR)) {
+                const uploadFiles = fs.readdirSync(UPLOADS_DIR)
+                    .filter(file => !file.startsWith('.'))
+                    .map(file => {
+                        const url = `/uploads/${file}`;
+                        const stats = fs.statSync(path.join(UPLOADS_DIR, file));
+                        return {
+                            name: file,
+                            url: url,
+                            size: stats.size,
+                            mtime: stats.mtime,
+                            usage: usageMap[url] || [],
+                            source: 'uploads'
+                        };
+                    });
+                allFiles.push(...uploadFiles);
+            }
+
+            // 2. 读取 assets 目录 (递归)
+            if (fs.existsSync(ASSETS_DIR)) {
+                const scanAssets = (dir, relPath = '') => {
+                    const entries = fs.readdirSync(dir, { withFileTypes: true });
+                    for (const entry of entries) {
+                        const res = path.resolve(dir, entry.name);
+                        const rel = path.join(relPath, entry.name).replace(/\\/g, '/');
+                        if (entry.isDirectory()) {
+                            scanAssets(res, rel);
+                        } else if (/\.(png|jpe?g|gif|svg|webp|ico)$/i.test(entry.name)) {
+                            const url = `/assets/${rel}`;
+                            const stats = fs.statSync(res);
+                            allFiles.push({
+                                name: entry.name,
+                                url: url,
+                                size: stats.size,
+                                mtime: stats.mtime,
+                                usage: usageMap[url] || [],
+                                source: 'assets'
+                            });
+                        }
+                    }
+                };
+                scanAssets(ASSETS_DIR);
+            }
+
+            allFiles.sort((a, b) => b.mtime - a.mtime);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(allFiles));
+        } catch (e) {
+            res.writeHead(500);
+            res.end(JSON.stringify({ success: false, message: e.message }));
+        }
+        return;
+    }
+
+    // 5.2 删除媒体库文件
+    if (parsedUrl.pathname === '/api/media' && req.method === 'DELETE') {
+        const fileName = parsedUrl.query.name;
+        const batch = parsedUrl.query.batch === 'true';
+
+        if (batch) {
+            // 批量清理未使用图片
+            try {
+                let body = '';
+                req.on('data', chunk => { body += chunk.toString(); });
+                req.on('end', () => {
+                    const { names } = JSON.parse(body);
+                    let deletedCount = 0;
+                    names.forEach(name => {
+                        const filePath = path.join(UPLOADS_DIR, name);
+                        if (isSafePathInside(UPLOADS_DIR, filePath) && fs.existsSync(filePath)) {
+                            fs.unlinkSync(filePath);
+                            deletedCount++;
+                        }
+                    });
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, deletedCount }));
+                });
+                return;
+            } catch (e) {
+                res.writeHead(500);
+                res.end(JSON.stringify({ success: false, message: e.message }));
+                return;
+            }
+        }
+
+        if (!fileName) {
+            res.writeHead(400);
+            res.end(JSON.stringify({ success: false, message: 'File name is required' }));
+            return;
+        }
+        const filePath = path.join(UPLOADS_DIR, fileName);
+        if (!isSafePathInside(UPLOADS_DIR, filePath)) {
+            res.writeHead(403);
+            res.end(JSON.stringify({ success: false, message: 'Forbidden' }));
+            return;
+        }
+        try {
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true }));
+        } catch (e) {
+            res.writeHead(500);
+            res.end(JSON.stringify({ success: false, message: e.message }));
+        }
         return;
     }
 

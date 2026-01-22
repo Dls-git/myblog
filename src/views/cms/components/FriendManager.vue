@@ -1,6 +1,6 @@
 
 <script setup>
-import { EditOutlined, DeleteOutlined, HolderOutlined } from '@ant-design/icons-vue'
+import { EditOutlined, DeleteOutlined, HolderOutlined, CopyOutlined } from '@ant-design/icons-vue'
 import draggable from 'vuedraggable'
 import { normalizeUrl } from '../utils'
 import { computed } from 'vue'
@@ -12,7 +12,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['editItem', 'deleteItem', 'update:listData'])
+const emit = defineEmits(['editItem', 'cloneItem', 'deleteItem', 'update:listData'])
 
 const list = computed({
   get: () => props.listData,
@@ -50,6 +50,9 @@ const list = computed({
             </div>
             <button class="cms-action-btn" @click.prevent="emit('editItem', index)" title="编辑">
               <EditOutlined />
+            </button>
+            <button class="cms-action-btn" @click.prevent="emit('cloneItem', index)" title="克隆">
+              <CopyOutlined />
             </button>
             <button class="cms-action-btn danger" @click.prevent="emit('deleteItem', index)" title="删除">
               <DeleteOutlined />
