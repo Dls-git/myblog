@@ -1,13 +1,14 @@
-html {
+html:root {
   background-color: rgb(var(--color-bg-root));
-  color: #373a3c;
-  --color-bg-root: 250 250 250;
+
+  /* Light theme variables with soft pastel colors */
+  --color-bg-root: 248 250 252;
   --color-bg-primary: 255 255 255;
-  --color-bg-secondary: 244 244 245;
-  --color-text-primary: 55 58 60;
-  --color-text-secondary: 113 113 122;
-  --color-border-primary: 228 228 231;
-  --color-accent: 37 99 235;
+  --color-bg-secondary: 240 244 248;
+  --color-text-primary: 45 55 72;
+  --color-text-secondary: 100 116 139;
+  --color-border-primary: 214 226 238;
+  --color-accent: 66 153 225;
 
   @media (prefers-color-scheme: dark) {
     background-color: rgb(var(--color-bg-root));

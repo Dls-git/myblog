@@ -26,7 +26,7 @@ const emit = defineEmits(['update:showPreview', 'update:showMeta', 'openAddModal
           设置
         </button>
       </div>
-      <div v-if="currentView === 'article_list' || currentView === 'aboutData.js'" style="display: flex; gap: 12px; align-items: center">
+      <div v-if="currentView === 'article_list' || currentView === 'aboutData.js' || currentView === 'taxonomy_manager'" style="display: flex; gap: 12px; align-items: center">
         <button 
           v-if="canUndo" 
           class="undo-btn" 

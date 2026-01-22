@@ -356,7 +356,7 @@ const maxHistory = 30
 const showHistoryDrawer = ref(false)
 
 const activeHistoryStack = computed(() => {
-  return currentView.value === 'article_list' ? historyStacks.posts : historyStacks.listData
+  return currentView.value === 'article_list' || currentView.value === 'taxonomy_manager' ? historyStacks.posts : historyStacks.listData
 })
 
 const canUndo = computed(() => activeHistoryStack.value.length > 1)
@@ -1076,6 +1076,7 @@ onMounted(() => {
             :posts="posts"
             :categories="categories"
             @refresh="() => { loadPosts(); loadCategories(); }"
+            @beforeTaxonomyChange="(data) => { pushHistory(posts, data.operation, 'posts') }"
           />
 
           <SystemManager 
@@ -1357,6 +1358,7 @@ onMounted(() => {
   padding: 16px;
   gap: 16px;
   overflow: hidden;
+  background: linear-gradient(135deg, rgb(var(--color-bg-root)) 0%, rgb(var(--color-bg-secondary) / 0.5) 100%);
 }
 
 .main-content {
@@ -1367,13 +1369,15 @@ onMounted(() => {
   background: rgb(var(--color-bg-primary));
   border: 1px solid rgb(var(--color-border-primary) / 0.75);
   border-radius: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
 }
 
 .content-area {
   flex: 1;
   padding: 32px;
   overflow-y: auto;
+  background: linear-gradient(180deg, rgb(var(--color-bg-primary)) 0%, rgb(var(--color-bg-secondary) / 0.3) 100%);
 }
 
 /* Common UI Elements */

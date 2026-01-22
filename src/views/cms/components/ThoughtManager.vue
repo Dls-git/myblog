@@ -18,10 +18,49 @@ const list = computed({
   get: () => props.listData,
   set: (value) => emit('update:listData', value)
 })
+
+// 统计数据计算
+const totalLikes = computed(() => {
+  return list.value.reduce((sum, item) => sum + (item.likes || 0), 0)
+})
+
+const totalComments = computed(() => {
+  return list.value.reduce((sum, item) => sum + (item.comments || 0), 0)
+})
+
+const recentAdditions = computed(() => {
+  const oneMonthAgo = new Date()
+  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
+  
+  return list.value.filter(item => {
+    const itemDate = new Date(item.date)
+    return !isNaN(itemDate) && itemDate >= oneMonthAgo
+  }).length
+})
 </script>
 
 <template>
   <div class="cms-thinking-container">
+    <!-- 管理统计信息 -->
+    <div class="cms-thinking-stats">
+      <div class="stat-card">
+        <div class="stat-value">{{ list.length }}</div>
+        <div class="stat-label">总说说数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ totalLikes }}</div>
+        <div class="stat-label">总获赞数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ totalComments }}</div>
+        <div class="stat-label">总评论数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ recentAdditions }}</div>
+        <div class="stat-label">本月新增</div>
+      </div>
+    </div>
+
     <draggable 
       v-if="list.length > 0"
       v-model="list" 
@@ -77,33 +116,91 @@ const list = computed({
 <style scoped lang="scss">
 .cms-thinking-container {
   padding: 0 20px;
-  max-width: 800px;
+  max-width: 100%;
   margin: 0 auto;
+}
+
+/* 统计信息样式 */
+.cms-thinking-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: rgb(var(--color-bg-primary));
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  border: 1px solid rgb(var(--color-border-primary) / 0.1);
+}
+
+.stat-card {
+  text-align: center;
+  padding: 20px 16px;
+  background: rgb(var(--color-bg-secondary) / 0.3);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  border: 1px solid rgb(var(--color-border-primary) / 0.1);
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  background: rgb(var(--color-bg-secondary) / 0.5);
+  border-color: rgb(var(--color-border-primary) / 0.3);
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: rgb(var(--color-accent));
+  margin-bottom: 6px;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: rgb(var(--color-text-secondary));
+  font-weight: 500;
+  opacity: 0.8;
 }
 
 .cms-thinking-list {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 20px;
 }
 
 .cms-thought-item {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   position: relative;
+  background: rgb(var(--color-bg-primary));
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  transition: all 0.3s ease;
+  border: 1px solid rgb(var(--color-border-primary) / 0.1);
+
+  &:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
+    border-color: rgb(var(--color-border-primary) / 0.3);
+  }
 }
 
 .cms-thought-avatar-col {
   flex-shrink: 0;
+  margin-top: 4px;
 }
 
 .cms-thought-avatar-img {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid rgba(var(--color-border-primary), 0.1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 2px solid rgb(var(--color-bg-primary));
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
 }
 
 .cms-thought-content-col {
@@ -116,113 +213,165 @@ const list = computed({
 
 .cms-thought-meta {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 
   .cms-thought-nickname {
-    font-size: 1rem;
-    font-weight: 700;
+    font-size: 0.95rem;
+    font-weight: 600;
     color: rgb(var(--color-text-primary));
+    transition: color 0.2s ease;
+    cursor: pointer;
+
+    &:hover {
+      color: rgb(var(--color-accent));
+    }
   }
 
   .cms-thought-date {
     font-size: 0.75rem;
     color: rgb(var(--color-text-secondary));
-    opacity: 0.7;
+    opacity: 0.8;
   }
 }
 
 .cms-thought-bubble {
   position: relative;
-  background: rgba(var(--color-bg-secondary), 0.4);
+  background: rgb(var(--color-bg-secondary));
   padding: 16px 20px;
-  border-radius: 14px;
-  border-top-left-radius: 2px;
-  border: 1px solid rgba(var(--color-border-primary), 0.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+  border-radius: 18px;
   transition: all 0.3s ease;
-
-  &:hover {
-    background: rgba(var(--color-bg-secondary), 0.6);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
-  }
+  line-height: 1.6;
 }
 
 .cms-thought-bubble-content {
   font-size: 0.95rem;
-  line-height: 1.6;
+  line-height: 1.65;
   color: rgb(var(--color-text-primary));
-  word-break: break-all;
+  word-break: break-word;
+  white-space: pre-wrap;
 
   :deep(a) {
     color: rgb(var(--color-accent));
     text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    position: relative;
+
     &:hover {
+      color: rgb(var(--color-accent) / 0.8);
       text-decoration: underline;
+    }
+  }
+
+  :deep(p) {
+    margin: 8px 0;
+
+    &:first-child {
+      margin-top: 0;
+    }
+
+    &:last-child {
+      margin-bottom: 0;
     }
   }
 }
 
 .cms-thought-actions-row {
   display: flex;
-  gap: 20px;
+  gap: 24px;
+  padding-top: 4px;
   padding-left: 4px;
+  border-top: 1px solid rgb(var(--color-border-primary) / 0.1);
+  padding-top: 12px;
+}
 
-  .cms-thought-action-item {
-    font-size: 0.8rem;
-    color: rgb(var(--color-text-secondary));
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    opacity: 0.7;
+.cms-thought-action-item {
+  font-size: 0.85rem;
+  color: rgb(var(--color-text-secondary));
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 6px 10px;
+  border-radius: 16px;
+  user-select: none;
 
-    .icon {
-      font-size: 0.9rem;
-    }
+  &:hover {
+    background: rgb(var(--color-bg-secondary));
+    color: rgb(var(--color-text-primary));
+    opacity: 1;
+    transform: translateY(-1px);
+  }
+
+  .icon {
+    font-size: 1rem;
+    transition: transform 0.2s ease;
+  }
+
+  &:active .icon {
+    transform: scale(0.9);
   }
 }
 
 .cms-card-actions {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 12px;
+  right: 12px;
   display: flex;
-  gap: 8px;
+  gap: 6px;
   opacity: 0;
   transform: translateY(-4px);
   transition: all 0.2s ease;
   z-index: 2;
 }
 
-.cms-card-wrap:hover .cms-card-actions {
+.cms-thought-item:hover .cms-card-actions {
   opacity: 1;
   transform: translateY(0);
 }
 
 .cms-action-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 12px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  border: 1px solid rgb(var(--color-border-primary) / 0.85);
-  background: rgb(var(--color-bg-primary) / 0.92);
-  color: rgb(var(--color-text-primary));
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgb(var(--color-border-primary) / 0.5);
+  background: rgb(var(--color-bg-primary) / 0.95);
+  color: rgb(var(--color-text-secondary));
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+
+  &:hover {
+    background: rgb(var(--color-bg-secondary));
+    color: rgb(var(--color-text-primary));
+    border-color: rgb(var(--color-border-primary) / 0.8);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
 }
 
 .cms-action-btn.danger {
-  color: #ef4444;
-  border-color: rgba(239, 68, 68, 0.35);
-  background: rgba(239, 68, 68, 0.08);
+  &:hover {
+    background: #fef2f2;
+    color: #ef4444;
+    border-color: #fecaca;
+  }
 }
 
-.drag-handle {
+.cms-action-btn.drag-handle {
   cursor: grab;
-  color: rgb(var(--color-text-secondary));
   
   &:active {
     cursor: grabbing;

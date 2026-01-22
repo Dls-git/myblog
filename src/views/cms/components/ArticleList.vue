@@ -38,11 +38,27 @@ const localQuery = computed({
 const statusFilter = ref('all') // all, published, draft
 const sortBy = ref('date') // date, title
 const sortOrder = ref('desc') // desc, asc
+const isDragging = ref(false) // 拖拽状态标记
+const currentMode = ref('drag') // drag 或 sort，控制拖拽和排序功能切换
 
 // 批量选择状态
 const selectedSlugs = ref(new Set())
 const isBatchMode = ref(false)
 
+// 检查拖拽功能是否可用
+const isDraggableEnabled = computed(() => {
+  return currentMode.value === 'drag' && 
+         !Boolean(localQuery.value && String(localQuery.value).trim()) && 
+         !isBatchMode.value
+})
+
+// 用于拖拽的原始数据
+const dragList = computed({
+  get: () => props.filteredPosts,
+  set: (val) => emit('update:filteredPosts', val)
+})
+
+// 用于显示的处理后数据
 const processedList = computed(() => {
   let list = [...props.filteredPosts]
 
@@ -51,28 +67,26 @@ const processedList = computed(() => {
     list = list.filter(p => (p.status || 'published') === statusFilter.value)
   }
 
-  // 2. 排序
-  list.sort((a, b) => {
-    let valA, valB
-    if (sortBy.value === 'date') {
-      valA = new Date(a.date || 0).getTime()
-      valB = new Date(b.date || 0).getTime()
-    } else {
-      valA = (a.title || '').toLowerCase()
-      valB = (b.title || '').toLowerCase()
-    }
+  // 2. 排序 - 仅当排序模式或拖拽不可用时进行排序
+  if (currentMode.value === 'sort' || !isDraggableEnabled.value) {
+    list.sort((a, b) => {
+      let valA, valB
+      if (sortBy.value === 'date') {
+        valA = new Date(a.date || 0).getTime()
+        valB = new Date(b.date || 0).getTime()
+      } else {
+        valA = (a.title || '').toLowerCase()
+        valB = (b.title || '').toLowerCase()
+      }
 
-    if (valA < valB) return sortOrder.value === 'asc' ? -1 : 1
-    if (valA > valB) return sortOrder.value === 'asc' ? 1 : -1
-    return 0
-  })
+      if (valA < valB) return sortOrder.value === 'asc' ? -1 : 1
+      if (valA > valB) return sortOrder.value === 'asc' ? 1 : -1
+      return 0
+    })
+  }
+  // 当拖拽模式且可用时，使用拖拽后的顺序
 
   return list
-})
-
-const localList = computed({
-  get: () => processedList.value,
-  set: (val) => emit('update:filteredPosts', val)
 })
 
 const toggleSelect = (slug) => {
@@ -126,12 +140,20 @@ const formatDate = (date) => {
           </select>
           
           <span class="label"><SortAscendingOutlined /> 排序:</span>
-          <select v-model="sortBy" class="filter-select">
+          <select v-model="sortBy" class="filter-select" :disabled="currentMode === 'drag'">
             <option value="date">发布日期</option>
             <option value="title">文章标题</option>
           </select>
-          <button class="sort-order-btn" @click="sortOrder = sortOrder === 'desc' ? 'asc' : 'desc'">
+          <button class="sort-order-btn" @click="sortOrder = sortOrder === 'desc' ? 'asc' : 'desc'" :disabled="currentMode === 'drag'">
             {{ sortOrder === 'desc' ? '倒序 ↓' : '正序 ↑' }}
+          </button>
+          
+          <button 
+            class="mode-toggle-btn"
+            :class="{ active: true }"
+            @click="currentMode = currentMode === 'drag' ? 'sort' : 'drag'"
+          >
+            {{ currentMode === 'drag' ? '拖拽模式' : '排序模式' }}
           </button>
         </div>
 
@@ -161,13 +183,15 @@ const formatDate = (date) => {
 
     <div class="card-container" v-if="processedList.length">
       <draggable
-        v-model="localList"
+        v-model="dragList"
         class="article-list-drag"
         item-key="slug"
         handle=".drag-handle"
         :animation="300"
-        :disabled="Boolean(query && String(query).trim()) || statusFilter !== 'all' || sortBy !== 'date' || sortOrder !== 'desc' || isBatchMode"
+        :disabled="!isDraggableEnabled"
         ghost-class="ghost-card"
+        @start="isDragging = true"
+        @end="isDragging = false"
       >
         <template #item="{ element: p }">
           <div 
@@ -196,7 +220,7 @@ const formatDate = (date) => {
                   <span v-if="p.tags && p.tags.length">🏷️ {{ p.tags.join(', ') }}</span>
                 </div>
                 <div class="post-card-actions">
-                  <div class="drag-handle" title="拖拽排序 (仅限默认排序时)" v-if="!isBatchMode && statusFilter === 'all' && sortBy === 'date' && sortOrder === 'desc'">
+                  <div class="drag-handle" title="拖拽排序 (仅限默认排序时)" v-if="isDraggableEnabled">
                     <HolderOutlined />
                   </div>
                   <div class="continue-link" v-if="!isBatchMode">编辑文章 -></div>
@@ -287,6 +311,39 @@ const formatDate = (date) => {
     border-color: rgb(var(--color-accent));
     color: rgb(var(--color-accent));
   }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    &:hover {
+      border-color: rgb(var(--color-border-primary) / 0.8);
+      color: inherit;
+    }
+  }
+}
+
+.mode-toggle-btn {
+  background: rgb(var(--color-accent));
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  margin-left: 8px;
+
+  &:hover {
+    background: rgb(var(--color-accent) / 0.9);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.filter-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .batch-actions {
