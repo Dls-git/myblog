@@ -1,4 +1,5 @@
 # MyBlog 使用文档
+> https://www.youthy.site/ 网站链接
 
 ## 📦 开箱即用指南
 
