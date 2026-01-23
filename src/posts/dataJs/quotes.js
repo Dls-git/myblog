@@ -5,7 +5,7 @@ export const quotes = [
         "author": "辛弃疾",
         "source": "《贺新郎·甚矣吾衰矣》",
         "date": "2025-12-18",
-        "_cms_id": "1769149151777-zfdqkuadu"
+        "_cms_id": 1
     },
     {
         "id": 2,
