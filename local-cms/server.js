@@ -236,7 +236,6 @@ function listPosts() {
                 for (const entry of entries) {
                     if (!entry.isFile()) continue;
                     if (!entry.name.toLowerCase().endsWith('.md')) continue;
-                    if (entry.name.toLowerCase() === 'all.md') continue;
         
                     const slug = entry.name.replace(/\.md$/i, '');
                     const filePath = path.join(POSTS_DIR, entry.name);

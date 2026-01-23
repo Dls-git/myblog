@@ -12,7 +12,7 @@ export const photos = [
         "id": 5,
         "url": new URL('../../assets/gallery/young.jpg', import.meta.url).href,
         "title": "很久以前",
-        "date": "2017-xx-xx",
+        "date": "2017-01-01",
         "description": "Old times",
         "category": "Memory",
         "_cms_id": 5
@@ -48,7 +48,7 @@ export const photos = [
         "id": 11,
         "url": new URL('../../assets/gallery/threePeo.jpg', import.meta.url).href,
         "title": "东湖前",
-        "date": "2025-03-0x",
+        "date": "2025-03-15",
         "description": "Three people",
         "category": "Memory",
         "_cms_id": 11
@@ -102,7 +102,7 @@ export const photos = [
         "id": 12,
         "url": new URL('../../assets/gallery/twoPeo.jpg', import.meta.url).href,
         "title": "要放假了",
-        "date": "2026-01-0x",
+        "date": "2025-12-27",
         "description": "Two people",
         "category": "Memory",
         "_cms_id": 12

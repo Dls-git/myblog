@@ -1,14 +1,16 @@
 ---
 title: 大一古早时期学习java
-date: 2025-03-01
+description: 一月学习随手记
+cover: ''
+date: 'Sat Mar 01 2025 08:00:00 GMT+0800 (中国标准时间)'
+status: published
 category: 后端开发
 tags:
   - java
   - javase
-description: 一月学习随手记
-updated: 2025-04-02
-readingTime: 60
-wordCount: 12000
+updated: '2026-01-23'
+wordCount: 28669
+readingTime: 72
 ---
 
 

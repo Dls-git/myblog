@@ -1,14 +1,14 @@
---- 
-title: Local-CMS：纯前端博客的本地内容管理解决方案 
-description: '' 
-cover: '' 
-date: '2026-01-22' 
-status: published 
-category: 开发文档 
-tags: [] 
-updated: '2026-01-22' 
-wordCount: 1961 
-readingTime: 5 
+---
+title: README
+description: ''
+cover: ''
+date: '2026-01-22'
+status: published
+category: 开发文档
+tags: []
+updated: '2026-01-23'
+wordCount: 3188
+readingTime: 8
 ---
 # MyBlog 使用文档
 
@@ -72,6 +72,7 @@ myblog/
 ```
 
 ## 🎛️ CMS管理平台使用
+> cms使用文档可以在youthy.site网站里面查看
 
 ### 1. 启动CMS
 
@@ -268,22 +269,4 @@ npm run build
 - **GitHub Pages**：上传 `dist/` 目录到GitHub仓库
 - **自己的服务器**：将 `dist/` 目录部署到Web服务器
 
-## 📝 最佳实践
 
-### 1. 内容管理
-
-- 使用CMS管理平台管理内容，提高效率
-- 定期备份 `src/posts/` 目录，防止内容丢失
-- 使用语义化的分类和标签
-
-### 2. 性能优化
-
-- 图片使用适当尺寸，避免过大图片
-- 音乐文件放在 `public/music/` 目录
-- 定期清理无用的资源文件
-
-### 3. 安全性
-
-- 不要将敏感信息硬编码到代码中
-- 定期更新依赖包
-- 部署时使用HTTPS

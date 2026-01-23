@@ -20,7 +20,6 @@ const emit = defineEmits([
   'editAboutItem',
   'deleteAboutItem',
   'openAboutAddModal',
-  'saveAboutData',
   'update:listData'
 ])
 
@@ -36,6 +35,9 @@ const list = computed({
       <div class="header-left">
         <div class="title">关于页卡片</div>
         <div class="subtitle">点击卡片预览详情，点击按钮进行编辑/删除</div>
+      </div>
+      <div class="header-right">
+        <button class="action-btn primary" @click="emit('openAboutAddModal')">新增卡片</button>
       </div>
     </div>
 
@@ -90,21 +92,7 @@ const list = computed({
         </div>
       </template>
     </draggable>
-    <div v-else class="empty-state">暂无数据，请在下方新增卡片</div>
-
-    <div class="cms-bottom-bar">
-      <div class="cms-bottom-actions">
-        <select 
-          :value="aboutNewType" 
-          @change="e => emit('update:aboutNewType', e.target.value)"
-          class="about-type-select"
-        >
-          <option v-for="t in aboutTypeOptions" :key="t.value" :value="t.value">{{ t.label }}</option>
-        </select>
-        <button class="action-btn" @click="emit('openAboutAddModal')">新增卡片</button>
-        <button class="action-btn primary" @click="emit('saveAboutData')">发布关于页</button>
-      </div>
-    </div>
+    <div v-else class="empty-state">暂无数据，请点击右上角按钮新增卡片</div>
   </div>
 </template>
 
@@ -132,6 +120,12 @@ const list = computed({
   }
 }
 
+.header-right {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
 .cms-about-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -148,12 +142,13 @@ const list = computed({
   border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 20px;
   background: rgb(var(--color-bg-primary));
-  min-height: 200px;
+  min-height: 280px;
   transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
   cursor: pointer;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 
   &:hover {
     transform: translateY(-10px) scale(1.02);
@@ -288,17 +283,7 @@ const list = computed({
   align-items: center;
 }
 
-.about-type-select {
-  height: 36px;
-  padding: 0 12px;
-  border-radius: 999px;
-  border: 1px solid rgb(var(--color-border-primary) / 0.85);
-  background: rgb(var(--color-bg-primary));
-  color: rgb(var(--color-text-primary));
-  font-weight: 600;
-  font-size: 0.9rem;
-  outline: none;
-}
+
 
 .action-btn {
   background: rgb(var(--color-bg-secondary));
@@ -309,11 +294,54 @@ const list = computed({
   font-weight: 500;
   cursor: pointer;
   font-size: 0.9rem;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.3s ease;
+  }
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    border-color: rgb(var(--color-accent) / 0.8);
+  }
+  
+  &:hover::before {
+    left: 100%;
+  }
+  
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(var(--color-accent), 0.1);
+  }
+  
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  }
   
   &.primary {
     background: rgb(var(--color-accent));
     color: white;
     border: none;
+    
+    &:hover {
+      background: rgb(var(--color-accent) / 0.9);
+      box-shadow: 0 6px 16px rgba(var(--color-accent), 0.25);
+    }
+    
+    &:active {
+      background: rgb(var(--color-accent) / 0.85);
+    }
   }
 }
 

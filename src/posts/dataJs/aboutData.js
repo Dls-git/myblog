@@ -1,5 +1,15 @@
 export const qaList = [
     {
+        "id": "words",
+        "question": "如果用三个词形容你？",
+        "answer": "保持好奇、长期主义、生活家",
+        "type": "text",
+        "detail": {
+            "text": "好奇心驱动我不断学习新技术；长期主义让我不畏惧当下的困难，专注于长远的价值；而作为一个生活家，我坚信代码之外，生活本身才是最大的艺术。"
+        },
+        "_cms_id": "words"
+    },
+    {
         "id": "who",
         "question": "你是谁？",
         "type": "profile",
@@ -24,16 +34,6 @@ export const qaList = [
             ]
         },
         "_cms_id": "who"
-    },
-    {
-        "id": "words",
-        "question": "如果用三个词形容你？",
-        "answer": "保持好奇、长期主义、生活家",
-        "type": "text",
-        "detail": {
-            "text": "好奇心驱动我不断学习新技术；长期主义让我不畏惧当下的困难，专注于长远的价值；而作为一个生活家，我坚信代码之外，生活本身才是最大的艺术。"
-        },
-        "_cms_id": "words"
     },
     {
         "id": "stack",

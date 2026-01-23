@@ -76,13 +76,13 @@ const setView = (view) => {
         <div class="nav-item" :class="{ active: currentView === 'thoughts.js' }" @click="setView('thoughts.js')">
           <ThunderboltOutlined /> 碎碎念
         </div>
+        <div class="nav-item" :class="{ active: currentView === 'aboutData.js' }" @click="setView('aboutData.js')">
+          <InfoCircleOutlined /> 关于页管理
+        </div>
       </div>
 
       <div class="nav-group">
         <div class="nav-title">System</div>
-        <div class="nav-item" :class="{ active: currentView === 'aboutData.js' }" @click="setView('aboutData.js')">
-          <InfoCircleOutlined /> 关于页 (JSON)
-        </div>
         <div class="nav-item" :class="{ active: currentView === 'system_manager' }" @click="setView('system_manager')">
           <SettingOutlined /> 系统维护
         </div>
