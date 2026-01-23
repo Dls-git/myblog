@@ -1,5 +1,6 @@
 # MyBlog 使用文档
 > https://www.youthy.site/ 网站链接
+> https://www.youthy.site/cms 管理后台 接口请求的localhost：3000
 
 ## 📦 开箱即用指南
 
