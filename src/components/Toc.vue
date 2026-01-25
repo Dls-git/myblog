@@ -16,26 +16,45 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 const props = defineProps({
   toc: Array,
   activeId: String
 })
 
+const localActiveId = ref('')
+
 function scrollTo(id) {
-  const el = document.getElementById(id)
-  if (!el) return
-  const HEADER_OFFSET = 100
-  const top = el.getBoundingClientRect().top + window.pageYOffset - HEADER_OFFSET - 16
-  window.scrollTo({ top, behavior: 'smooth' })
-  localActiveId.value = id
+  // 确保id是字符串类型
+  const strId = String(id)
+  
+  // 移除调试日志，保持代码整洁
+  
+  // 使用document.getElementById，性能更好且更直接
+  const el = document.getElementById(strId)
+  if (!el) {
+    return
+  }
+  
+  // 使用更简单直接的滚动方式
+  el.scrollIntoView({
+    behavior: 'smooth',
+    block: 'start',
+    inline: 'nearest'
+  })
+  
+  localActiveId.value = strId
 }
 
-const localActiveId = ref('')
+// 监听activeId变化
+watch(() => props.activeId, (newVal) => {
+  if (newVal) {
+    localActiveId.value = newVal
+  }
+}, { immediate: true })
+
 onMounted(() => {
-  if (props.activeId) {
-    localActiveId.value = props.activeId
-  } else if (props.toc && props.toc.length) {
+  if (!localActiveId.value && props.toc && props.toc.length) {
     localActiveId.value = props.toc[0].id
   }
 })

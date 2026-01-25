@@ -58,10 +58,9 @@ onUnmounted(() => {
 
       <!-- 左侧：版权信息与简介 -->
       <div class="footer-section brand">
-        <h3 class="logo-text">My Blog</h3>
+        <h3 class="logo-text">YOUTHY</h3>
         <p class="desc">
-          写来玩玩，以后重构<br>
-          持续学习
+        千山万水
         </p>
         <p class="copyright">
           &copy; {{ new Date().getFullYear() }} Youth Finished design by <a href="https://github.com/lxchapu/astro-gyoza">Gyoza</a>.
@@ -104,12 +103,8 @@ onUnmounted(() => {
           <a href="mailto:example@email.com" title="Email">
             <i class="fas fa-envelope"></i> Email
           </a>
-          <a href="#" title="RSS">
-            <i class="fas fa-rss"></i> RSS
-          </a>
         </div>
       </div>
-
     </div>
 
     <!-- 底部装饰条 -->

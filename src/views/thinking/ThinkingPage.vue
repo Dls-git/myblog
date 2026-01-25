@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { thoughts } from '@/posts/dataJs/thoughts.js'
+import { CommentOutlined, HeartOutlined, EyeOutlined } from '@ant-design/icons-vue'
 
 // 模拟头像引用 (实际开发中可以放在 thoughts 数据里或者统一配置)
 import avatar from '@/assets/img/Mikasa.jpg'
@@ -119,13 +120,16 @@ const filteredTotalPages = computed(() => Math.ceil(filteredThoughts.value.lengt
 
             <div class="actions">
               <span class="action-item">
-                <span class="icon">💬</span> {{ item.comments }}
+                <CommentOutlined class="icon" />
+                <span class="count">{{ item.comments }}</span>
               </span>
               <span class="action-item like-btn" @click="handleLike(item)">
-                <span class="icon">🤍</span> {{ item.likes }}
+                <HeartOutlined class="icon" />
+                <span class="count">{{ item.likes }}</span>
               </span>
               <span class="action-item">
-                <span class="icon">👀</span> 0
+                <EyeOutlined class="icon" />
+                <span class="count">0</span>
               </span>
             </div>
           </div>
@@ -355,19 +359,29 @@ const filteredTotalPages = computed(() => Math.ceil(filteredThoughts.value.lengt
 
 .thought-item {
   display: flex;
-  gap: 20px;
+  gap: 16px;
   animation: fadeIn 0.5s ease-up;
+  padding: 0;
+  border: none;
+  transition: all 0.2s ease;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
 }
 
 .avatar-col {
   flex-shrink: 0;
+  margin-top: 2px;
 
   .avatar {
-    width: 48px;
-    height: 48px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid rgba(var(--color-border-primary), 0.2);
+    background: transparent;
+    transition: all 0.2s ease;
+    border: none;
+    box-shadow: none;
   }
 }
 
@@ -375,77 +389,126 @@ const filteredTotalPages = computed(() => Math.ceil(filteredThoughts.value.lengt
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
+  min-width: 0;
 }
 
 .meta-info {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 
   .nickname {
-    font-size: 16px;
-    font-weight: 600;
-    color: rgb(var(--color-text-primary));
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #000000;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    letter-spacing: 0;
+
+    &:hover {
+      color: #000000;
+    }
   }
 
   .date {
-    font-size: 12px;
-    color: rgb(var(--color-text-primary));
-    opacity: 0.6;
+    font-size: 0.85rem;
+    color: #666666;
+    opacity: 1;
+    letter-spacing: 0;
   }
 }
 
 .bubble {
   position: relative;
-  background: rgba(var(--color-bg-secondary), 0.5);
-  padding: 15px 20px;
-  border-radius: 12px;
-  border-top-left-radius: 2px; /* 气泡角效果 */
-  font-size: 15px;
-  line-height: 1.6;
-  color: rgb(var(--color-text-primary));
-  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-  border: 1px solid rgba(var(--color-border-primary), 0.1);
+  background: #f5f5f5;
+  padding: 16px 20px;
+  border-radius: 16px;
+  border-top-left-radius: 16px; /* 统一圆角 */
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #000000;
+  box-shadow: none;
+  border: none;
+  max-width: fit-content;
 
   :deep(a) {
-    color: #409eff;
+    color: #000000;
     text-decoration: none;
     word-break: break-all;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    position: relative;
 
     &:hover {
+      color: #000000;
       text-decoration: underline;
+      text-underline-offset: 2px;
     }
   }
 }
 
 .actions {
   display: flex;
-  gap: 25px;
-  margin-top: 5px;
-  padding-left: 5px;
+  gap: 48px;
+  margin-top: 8px;
+  padding-left: 0;
+  align-items: center;
 
   .action-item {
-    font-size: 13px;
-    color: rgb(var(--color-text-primary));
-    opacity: 0.6;
+    font-size: 0.85rem;
+    color: #999999;
+    opacity: 1;
     display: flex;
     align-items: center;
     gap: 6px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
+    padding: 4px 12px;
+    border-radius: 18px;
+    user-select: none;
+    background: transparent;
+    white-space: nowrap;
 
     &:hover {
+      color: #666666;
       opacity: 1;
-      color: #409eff;
-    }
-
-    &.like-btn:active {
-      transform: scale(0.9);
+      transform: translateY(-1px);
+      background: #fafafa;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     }
 
     .icon {
-      font-size: 14px;
+      font-size: 0.9rem;
+      transition: all 0.2s ease;
+      color: #999999;
+    }
+
+    .count {
+      font-size: 0.8rem;
+      transition: color 0.2s ease;
+    }
+
+    &:hover .icon,
+    &:hover .count {
+      color: #666666;
+    }
+
+    &:hover .icon {
+      transform: scale(1.1);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+
+    &:active .icon {
+      transform: scale(0.95);
+    }
+
+    &.like-btn:active {
+      transform: scale(0.95);
     }
   }
 }

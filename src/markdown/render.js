@@ -59,22 +59,47 @@ export async function renderMarkdown(mdText, fromPath) {
         },
     })
 
-    // ✅ 你的 TOC 逻辑（原样保留）
+    // ✅ TOC 逻辑 - 修复id生成和TOC推送
     md.renderer.rules.heading_open = (tokens, idx, options, env, self) => {
         const token = tokens[idx]
         const level = Number(token.tag.slice(1))
 
         if (level === 2 || level === 3) {
-            const text = tokens[idx + 1].content
-            const id = text
+            // 获取标题文本，确保处理所有类型的标题内容
+            let text = ''
+            for (let i = idx + 1; i < tokens.length; i++) {
+                if (tokens[i].type === 'heading_close') {
+                    break
+                }
+                text += tokens[i].content
+            }
+            
+            // 生成更健壮的id
+            let id = text
                 .toLowerCase()
+                .trim()
                 .replace(/\s+/g, '-')
                 .replace(/[^\w\-]/g, '')
+            
+            // 确保id不为空
+            if (!id) {
+                id = `heading-${idx}`
+            }
+            
+            // 确保id唯一（使用简单的计数器，避免依赖document）
+            let uniqueId = id
+            let counter = 1
+            
+            // 检查当前toc数组中是否已存在相同id
+            while (toc.some(item => item.id === uniqueId)) {
+                uniqueId = `${id}-${counter}`
+                counter++
+            }
 
-            token.attrSet('id', id)
+            token.attrSet('id', uniqueId)
 
             toc.push({
-                id,
+                id: uniqueId,
                 text,
                 level,
             })

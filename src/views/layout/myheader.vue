@@ -6,7 +6,8 @@ import { posts } from '@/posts'
 const route = useRoute()
 const router = useRouter()
 const isPost = computed(() => route.path.startsWith('/layout/post'))
-const theme = ref('light') // 默认主题改为 light
+// 从localStorage读取主题，默认light
+const theme = ref(localStorage.getItem('theme') || 'light') // 默认主题改为 light
 
 // 导航菜单配置
 const navItems = [
@@ -32,10 +33,9 @@ const finalNavItems = [
   { name: '首页', path: '/', icon: '🏠' },
   { 
     name: '分类', 
-    path: null, 
-    icon: '📂',
+    path: '/layout/category/Frontend', 
+    icon: '',
     children: [
-      { name: '手记', path: '/layout/category/Frontend', icon: '📚' },
       { name: '标签', path: '/layout/tag/Vue', icon: '🏷️' }
     ]
   },
@@ -126,10 +126,6 @@ function goToPost(slug) {
 }
 
 function applyTheme() {
-  if (!isPost.value) {
-    document.documentElement.removeAttribute('data-theme')
-    return
-  }
   document.documentElement.setAttribute('data-theme', theme.value)
 }
 function toggleTheme(event) {
@@ -137,6 +133,8 @@ function toggleTheme(event) {
   
   const switchTheme = () => {
     theme.value = isDark ? 'light' : 'dark'
+    // 保存主题到localStorage
+    localStorage.setItem('theme', theme.value)
     applyTheme()
   }
 
