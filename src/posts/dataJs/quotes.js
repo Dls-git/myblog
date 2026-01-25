@@ -54,5 +54,12 @@ export const quotes = [
         "source": "《大明风华》",
         "date": "2025-12-20",
         "_cms_id": 7
+    },
+    {
+        "content": "西边日出东边雨，道是无晴却有晴",
+        "author": "刘禹锡",
+        "source": "《竹枝词》",
+        "date": "2026-01-25",
+        "_cms_id": "1769313229516-qj6kfzjaz"
     }
 ];

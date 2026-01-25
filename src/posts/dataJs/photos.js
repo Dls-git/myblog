@@ -106,5 +106,14 @@ export const photos = [
         "description": "Two people",
         "category": "Memory",
         "_cms_id": 12
+    },
+    {
+        "title": "常回来",
+        "date": "2026-01-24",
+        "category": "Memory",
+        "description": "宣传",
+        "url": "/uploads/img-1769313109568-ce35b89a28397bf04490ddfa0a0e081e-1769313109584.webp",
+        "id": 1769313129796,
+        "_cms_id": "1769313129796-n49gq0jrp"
     }
 ];

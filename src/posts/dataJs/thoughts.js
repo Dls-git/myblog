@@ -1,5 +1,14 @@
 export const thoughts = [
     {
+        "date": "2026-01-25",
+        "likes": 0,
+        "comments": 0,
+        "content": "认识自己",
+        "id": 1769313260180,
+        "week": "星期日",
+        "_cms_id": "1769313260180-3it1ceny3"
+    },
+    {
         "date": "2026-01-22",
         "likes": 999,
         "comments": 999,

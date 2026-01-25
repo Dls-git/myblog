@@ -4,6 +4,5 @@ export const postOrder = [
     "Local-CMS",
     "项目文档",
     "dataStructerLearning",
-    "java",
-    "dsadassd"
+    "java"
 ];
