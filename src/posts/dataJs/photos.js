@@ -114,6 +114,14 @@ export const photos = [
         "description": "宣传",
         "url": "/uploads/img-1769313109568-ce35b89a28397bf04490ddfa0a0e081e-1769313109584.webp",
         "id": 1769313129796,
-        "_cms_id": "1769313129796-n49gq0jrp"
+        "_cms_id": 1769313129796
+    },
+    {
+        "title": "再见面",
+        "date": "2026-02-25",
+        "category": "Memory",
+        "url": "/uploads/img-1772104732498-微信图片_2026-02-26_191839_788-1772104732509.webp",
+        "id": 1772104736471,
+        "_cms_id": "1772104736471-oknme0k8n"
     }
 ];
