@@ -1,9 +1,9 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { thoughts } from '@/posts/dataJs/thoughts.js'
 import { CommentOutlined, HeartOutlined, EyeOutlined } from '@ant-design/icons-vue'
 
-// 模拟头像引用 (实际开发中可以放在 thoughts 数据里或者统一配置)
+// 模拟头像引用
 import avatar from '@/assets/img/Mikasa.jpg'
 
 // 1. 先按时间倒序排序
@@ -14,26 +14,8 @@ const sortedThoughts = computed(() => {
 // 分页逻辑
 const currentPage = ref(1)
 const pageSize = 10
-const totalPages = computed(() => Math.ceil(sortedThoughts.value.length / pageSize))
 
-const displayThoughts = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  return sortedThoughts.value.slice(start, start + pageSize)
-})
-
-const changePage = (page) => {
-  if (page >= 1 && page <= totalPages.value) {
-    currentPage.value = page
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-}
-
-// 简单的点赞功能 (仅前端效果)
-const handleLike = (item) => {
-  item.likes++
-}
-
-// 侧边栏数据计算
+// 侧边栏统计数据计算
 const stats = computed(() => {
   const total = thoughts.length
   const totalLikes = thoughts.reduce((sum, item) => sum + (item.likes || 0), 0)
@@ -57,7 +39,7 @@ const randomThought = computed(() => {
   return thoughts[randomIndex]
 })
 
-// 时间线导航
+// 时间线导航数据
 const yearNav = computed(() => {
   const years = new Set()
   thoughts.forEach(item => {
@@ -72,6 +54,7 @@ const selectedYear = ref(null)
 
 const handleYearSelect = (year) => {
   selectedYear.value = selectedYear.value === year ? null : year
+  currentPage.value = 1 // 切换年份时重置页码
 }
 
 // 根据年份筛选的说说
@@ -89,514 +72,491 @@ const displayFilteredThoughts = computed(() => {
 })
 
 const filteredTotalPages = computed(() => Math.ceil(filteredThoughts.value.length / pageSize))
+
+const changePage = (page) => {
+  if (page >= 1 && page <= filteredTotalPages.value) {
+    currentPage.value = page
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+}
+
+// 简单的点赞功能 (仅前端效果)
+const handleLike = (item) => {
+  item.likes++
+}
 </script>
 
 <template>
-  <div class="thinking-page">
-    <div class="header-section">
+  <div class="moments-container">
+    <header class="moments-header">
       <h1 class="page-title">
-        思考 <span class="rss-icon">📶</span>
+        说说 <span class="rss-icon"></span>
       </h1>
-      <p class="subtitle">谢谢你听我诉说</p>
-    </div>
+      <p class="subtitle">记录生活，捕捉瞬间</p>
+    </header>
 
-    <!-- 主要内容区域 -->
-    <div class="main-content">
-      <div class="timeline">
-        <div v-for="item in displayFilteredThoughts" :key="item.id" class="thought-item">
-          <div class="avatar-col">
-            <img :src="avatar" alt="Avatar" class="avatar">
-          </div>
-
-          <div class="content-col">
-            <div class="meta-info">
-              <span class="nickname">Youth</span>
-              <span class="date">{{ item.date }} {{ item.week }}</span>
+    <div class="moments-layout">
+      <!-- 主要内容区域 -->
+      <main class="moments-main">
+        <div class="moments-list">
+          <article v-for="item in displayFilteredThoughts" :key="item.id" class="moment-card">
+            <div class="card-header">
+              <div class="user-info">
+                <img :src="avatar" alt="Avatar" class="user-avatar">
+                <div class="user-meta">
+                  <span class="user-name">Youth</span>
+                  <span class="publish-date">{{ item.date }} {{ item.week }}</span>
+                </div>
+              </div>
             </div>
 
-            <div class="bubble">
-              <div class="bubble-content" v-html="item.content.replace(/(https?:\/\/[^\s]+)/g, '<a href=\'$1\' target=\'_blank\'>$1</a>')"></div>
+            <div class="card-content">
+              <div class="moment-text" v-html="item.content.replace(/(https?:\/\/[^\s]+)/g, '<a href=\'$1\' target=\'_blank\'>$1</a>')"></div>
             </div>
 
-            <div class="actions">
-              <span class="action-item">
-                <CommentOutlined class="icon" />
-                <span class="count">{{ item.comments }}</span>
-              </span>
-              <span class="action-item like-btn" @click="handleLike(item)">
-                <HeartOutlined class="icon" />
-                <span class="count">{{ item.likes }}</span>
-              </span>
-              <span class="action-item">
-                <EyeOutlined class="icon" />
-                <span class="count">0</span>
-              </span>
-            </div>
-          </div>
+            <footer class="card-footer">
+              <div class="card-actions">
+                <div class="action-item" @click="handleLike(item)">
+                  <HeartOutlined class="action-icon" />
+                  <span class="action-count">{{ item.likes }}</span>
+                </div>
+                <div class="action-item">
+                  <CommentOutlined class="action-icon" />
+                  <span class="action-count">{{ item.comments }}</span>
+                </div>
+                <div class="action-item">
+                  <EyeOutlined class="action-icon" />
+                  <span class="action-count">0</span>
+                </div>
+              </div>
+            </footer>
+          </article>
         </div>
-      </div>
 
-      <!-- 分页器 -->
-      <div class="pagination" v-if="filteredTotalPages > 1">
-        <button
-          class="page-btn"
-          :disabled="currentPage === 1"
-          @click="changePage(currentPage - 1)"
-        >
-          &lt;
-        </button>
-        <button
-          v-for="page in filteredTotalPages"
-          :key="page"
-          class="page-btn"
-          :class="{ active: currentPage === page }"
-          @click="changePage(page)"
-        >
-          {{ page }}
-        </button>
-        <button
-          class="page-btn"
-          :disabled="currentPage === filteredTotalPages"
-          @click="changePage(currentPage + 1)"
-        >
-          &gt;
-        </button>
-      </div>
-    </div>
-
-    <!-- 侧边信息栏 -->
-    <div class="sidebar">
-      <!-- 统计信息 -->
-      <div class="sidebar-section">
-        <h3 class="sidebar-title">说说统计</h3>
-        <div class="sidebar-stat">
-          <span class="stat-label">总说说数</span>
-          <span class="stat-value">{{ stats.total }}</span>
-        </div>
-        <div class="sidebar-stat">
-          <span class="stat-label">总获赞数</span>
-          <span class="stat-value">{{ stats.totalLikes }}</span>
-        </div>
-        <div class="sidebar-stat">
-          <span class="stat-label">总评论数</span>
-          <span class="stat-value">{{ stats.totalComments }}</span>
-        </div>
-        <div class="sidebar-stat">
-          <span class="stat-label">本月新增</span>
-          <span class="stat-value">{{ stats.recentCount }}</span>
-        </div>
-      </div>
-
-      <!-- 随机说说 -->
-      <div class="sidebar-section" v-if="randomThought">
-        <h3 class="sidebar-title">随机说说</h3>
-        <div class="random-thought">
-          <div class="random-title">随机一条</div>
-          <div class="random-content" v-html="randomThought.content.replace(/(https?:\/\/[^\s]+)/g, '<a href=\'$1\' target=\'_blank\'>$1</a>')"></div>
-        </div>
-      </div>
-
-      <!-- 时间线导航 -->
-      <div class="sidebar-section">
-        <h3 class="sidebar-title">时间线导航</h3>
-        <div class="timeline-nav">
-          <div 
-            v-for="year in yearNav" 
-            :key="year"
-            class="nav-item"
-            :class="{ active: selectedYear === year }"
-            @click="handleYearSelect(year)"
+        <!-- 分页器 -->
+        <nav class="pagination-wrapper" v-if="filteredTotalPages > 1" aria-label="Pagination">
+          <button
+            class="page-nav-btn"
+            :disabled="currentPage === 1"
+            @click="changePage(currentPage - 1)"
           >
-            {{ year }} 年
+            &larr;
+          </button>
+          <div class="page-numbers">
+            <button
+              v-for="page in filteredTotalPages"
+              :key="page"
+              class="page-number-btn"
+              :class="{ active: currentPage === page }"
+              @click="changePage(page)"
+            >
+              {{ page }}
+            </button>
           </div>
-        </div>
-      </div>
+          <button
+            class="page-nav-btn"
+            :disabled="currentPage === filteredTotalPages"
+            @click="changePage(currentPage + 1)"
+          >
+            &rarr;
+          </button>
+        </nav>
+      </main>
+
+      <!-- 侧边信息栏 -->
+      <aside class="moments-sidebar">
+        <!-- 统计信息 -->
+        <section class="sidebar-widget">
+          <h3 class="widget-title">动态统计</h3>
+          <div class="stats-grid">
+            <div class="stat-badge">
+              <span class="stat-label">总说说</span>
+              <span class="stat-value">{{ stats.total }}</span>
+            </div>
+            <div class="stat-badge">
+              <span class="stat-label">获赞</span>
+              <span class="stat-value">{{ stats.totalLikes }}</span>
+            </div>
+            <div class="stat-badge">
+              <span class="stat-label">评论</span>
+              <span class="stat-value">{{ stats.totalComments }}</span>
+            </div>
+            <div class="stat-badge">
+              <span class="stat-label">本月</span>
+              <span class="stat-value">{{ stats.recentCount }}</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- 随机说说 -->
+        <section class="sidebar-widget" v-if="randomThought">
+          <h3 class="widget-title">偶然发现</h3>
+          <div class="random-moment-card">
+            <div class="random-content" v-html="randomThought.content.replace(/(https?:\/\/[^\s]+)/g, '<a href=\'$1\' target=\'_blank\'>$1</a>')"></div>
+          </div>
+        </section>
+
+        <!-- 时间线导航 -->
+        <section class="sidebar-widget">
+          <h3 class="widget-title">时光回顾</h3>
+          <nav class="year-nav">
+            <button 
+              v-for="year in yearNav" 
+              :key="year"
+              class="year-link"
+              :class="{ active: selectedYear === year }"
+              @click="handleYearSelect(year)"
+            >
+              {{ year }} 年
+            </button>
+          </nav>
+        </section>
+      </aside>
     </div>
   </div>
 </template>
 
 <style scoped lang="scss">
-.thinking-page {
-  max-width: 1200px;
+/* 基础变量与重置 */
+.moments-container {
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 40px 20px;
-  min-height: 80vh;
-  display: grid;
-  grid-template-columns: 1fr 280px;
-  gap: 40px;
-  align-items: start;
+  padding: 60px 20px;
+  min-height: 100vh;
+  background-color: #FAFAFA; /* 更中性的浅灰白背景，移除蓝色调 */
 }
 
-.header-section {
-  grid-column: 1 / -1;
-  margin-bottom: 40px;
+/* 头部样式 */
+.moments-header {
+  margin-bottom: 50px;
+  text-align: left;
 
   .page-title {
-    font-size: 36px;
+    font-size: 42px;
     font-weight: 800;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    color: #1A1A1A;
     display: flex;
     align-items: center;
-    gap: 10px;
-    color: rgb(var(--color-text-primary));
+    gap: 15px;
 
     .rss-icon {
       font-size: 24px;
-      color: #ff9f43;
+      color: #FF9F43;
     }
   }
 
   .subtitle {
-    font-size: 24px;
-    font-weight: 700;
-    color: rgb(var(--color-text-primary));
-    opacity: 0.9;
+    font-size: 20px;
+    color: #666;
+    font-weight: 500;
   }
 }
 
-.timeline {
-  display: flex;
-  flex-direction: column;
+/* 布局结构 */
+.moments-layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
   gap: 40px;
+  align-items: start;
 }
 
-/* 侧边信息栏 */
-.sidebar {
-  position: sticky;
-  top: 20px;
+/* 说说卡片列表 */
+.moments-list {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  padding: 24px;
-  background: rgb(var(--color-bg-primary));
-  border-radius: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-  border: 1px solid rgb(var(--color-border-primary) / 0.1);
-  height: fit-content;
 }
 
-.sidebar-section {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.sidebar-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: rgb(var(--color-text-primary));
-  margin-bottom: 4px;
-}
-
-.sidebar-stat {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid rgb(var(--color-border-primary) / 0.1);
-  font-size: 14px;
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  .stat-label {
-    color: rgb(var(--color-text-secondary));
-  }
-
-  .stat-value {
-    font-weight: 600;
-    color: rgb(var(--color-accent));
-  }
-}
-
-/* 随机说说卡片 */
-.random-thought {
-  background: rgb(var(--color-bg-secondary) / 0.5);
-  padding: 16px;
+/* 单个说说卡片 */
+.moment-card {
+  background: #FFFFFF;
   border-radius: 12px;
-  font-size: 14px;
-  line-height: 1.5;
-  color: rgb(var(--color-text-primary));
-  opacity: 0.9;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border: 1px solid rgba(0, 0, 0, 0.02);
 
-  .random-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: rgb(var(--color-text-secondary));
-    margin-bottom: 8px;
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
   }
 }
 
-/* 时间线导航 */
-.timeline-nav {
+/* 卡片头部：用户信息 */
+.card-header {
+  margin-bottom: 16px;
+
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .user-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #eee;
+    }
+
+    .user-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+
+      .user-name {
+        font-weight: 700;
+        font-size: 16px;
+        color: #1A1A1A;
+      }
+
+      .publish-date {
+        font-size: 13px;
+        color: #999;
+      }
+    }
+  }
+}
+
+/* 卡片内容 */
+.card-content {
+  margin-bottom: 20px;
+
+  .moment-text {
+    font-size: 15px;
+    line-height: 1.6;
+    color: #333;
+    white-space: pre-wrap;
+    word-break: break-word;
+
+    :deep(a) {
+      color: rgb(var(--color-accent, #4A90E2));
+      text-decoration: none;
+      font-weight: 500;
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+/* 卡片底部操作栏 */
+.card-footer {
+  padding-top: 16px;
+  border-top: 1px dashed #EEE; /* 虚线分割线 */
+
+  .card-actions {
+    display: flex;
+    gap: 32px;
+
+    .action-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #888;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s ease;
+
+      .action-icon {
+        font-size: 18px;
+      }
+
+      &:hover {
+        color: rgb(var(--color-accent, #4A90E2)); /* 悬停变为主题色 */
+        .action-icon {
+          transform: scale(1.1);
+        }
+      }
+    }
+  }
+}
+
+/* 侧边栏样式 */
+.moments-sidebar {
+  position: sticky;
+  top: 40px;
   display: flex;
   flex-direction: column;
+  gap: 30px;
+}
+
+.sidebar-widget {
+  background: #FFFFFF;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+
+  .widget-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1A1A1A;
+    margin-bottom: 20px;
+    padding-left: 10px;
+    border-left: 4px solid rgb(var(--color-accent, #4A90E2));
+  }
+}
+
+/* 统计徽章设计 */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  .stat-badge {
+    background-color: rgba(var(--color-accent-rgb, 74, 144, 226), 0.08); /* 极浅主题色背景 */
+    padding: 12px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+
+    .stat-label {
+      font-size: 12px;
+      color: rgb(var(--color-accent, #4A90E2));
+      font-weight: 500;
+    }
+
+    .stat-value {
+      font-size: 18px;
+      font-weight: 800;
+      color: rgb(var(--color-accent, #4A90E2));
+    }
+  }
+}
+
+/* 随机说说侧边卡片 */
+.random-moment-card {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #555;
+  font-style: italic;
+  
+  .random-content {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+/* 年份导航 */
+.year-nav {
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 
-  .nav-item {
-    padding: 8px 12px;
-    border-radius: 8px;
+  .year-link {
+    padding: 6px 16px;
+    border-radius: 20px;
     font-size: 13px;
-    color: rgb(var(--color-text-secondary));
+    background: #F0F2F5;
+    color: #666;
+    border: none;
     cursor: pointer;
     transition: all 0.2s ease;
-    border: 1px solid transparent;
 
     &:hover {
-      background: rgb(var(--color-bg-secondary));
-      color: rgb(var(--color-text-primary));
-      border-color: rgb(var(--color-border-primary) / 0.2);
+      background: #E4E7ED;
+      color: rgb(var(--color-accent, #4A90E2));
     }
 
     &.active {
-      background: rgb(var(--color-accent) / 0.1);
-      color: rgb(var(--color-accent));
-      border-color: rgb(var(--color-accent) / 0.3);
+      background: rgb(var(--color-accent, #4A90E2));
+      color: #FFF;
+      font-weight: 600;
     }
   }
 }
 
-.thought-item {
-  display: flex;
-  gap: 16px;
-  animation: fadeIn 0.5s ease-up;
-  padding: 0;
-  border: none;
-  transition: all 0.2s ease;
-  background: transparent;
-  box-shadow: none;
-  border-radius: 0;
-}
-
-.avatar-col {
-  flex-shrink: 0;
-  margin-top: 2px;
-
-  .avatar {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    object-fit: cover;
-    background: transparent;
-    transition: all 0.2s ease;
-    border: none;
-    box-shadow: none;
-  }
-}
-
-.content-col {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-width: 0;
-}
-
-.meta-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-
-  .nickname {
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: #000000;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    letter-spacing: 0;
-
-    &:hover {
-      color: #000000;
-    }
-  }
-
-  .date {
-    font-size: 0.85rem;
-    color: #666666;
-    opacity: 1;
-    letter-spacing: 0;
-  }
-}
-
-.bubble {
-  position: relative;
-  background: #f5f5f5;
-  padding: 16px 20px;
-  border-radius: 16px;
-  border-top-left-radius: 16px; /* 统一圆角 */
-  font-size: 0.95rem;
-  line-height: 1.5;
-  color: #000000;
-  box-shadow: none;
-  border: none;
-  max-width: fit-content;
-
-  :deep(a) {
-    color: #000000;
-    text-decoration: none;
-    word-break: break-all;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    position: relative;
-
-    &:hover {
-      color: #000000;
-      text-decoration: underline;
-      text-underline-offset: 2px;
-    }
-  }
-}
-
-.actions {
-  display: flex;
-  gap: 48px;
-  margin-top: 8px;
-  padding-left: 0;
-  align-items: center;
-
-  .action-item {
-    font-size: 0.85rem;
-    color: #999999;
-    opacity: 1;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    padding: 4px 12px;
-    border-radius: 18px;
-    user-select: none;
-    background: transparent;
-    white-space: nowrap;
-
-    &:hover {
-      color: #666666;
-      opacity: 1;
-      transform: translateY(-1px);
-      background: #fafafa;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    }
-
-    .icon {
-      font-size: 0.9rem;
-      transition: all 0.2s ease;
-      color: #999999;
-    }
-
-    .count {
-      font-size: 0.8rem;
-      transition: color 0.2s ease;
-    }
-
-    &:hover .icon,
-    &:hover .count {
-      color: #666666;
-    }
-
-    &:hover .icon {
-      transform: scale(1.1);
-    }
-
-    &:active {
-      transform: translateY(0);
-    }
-
-    &:active .icon {
-      transform: scale(0.95);
-    }
-
-    &.like-btn:active {
-      transform: scale(0.95);
-    }
-  }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.main-content {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-@media (max-width: 960px) {
-  .thinking-page {
-    grid-template-columns: 1fr;
-    gap: 24px;
-    padding: 20px 16px;
-  }
-
-  .sidebar {
-    position: static;
-    order: -1;
-    padding: 16px;
-  }
-}
-
-@media (max-width: 600px) {
-  .header-section {
-    margin-bottom: 40px;
-
-    .page-title { font-size: 28px; }
-    .subtitle { font-size: 18px; }
-  }
-
-  .thought-item {
-    gap: 12px;
-  }
-
-  .avatar-col .avatar {
-    width: 40px;
-    height: 40px;
-  }
-
-  .sidebar {
-    padding: 12px;
-  }
-
-  .sidebar-section {
-    gap: 12px;
-  }
-}
-
-/* 分页 */
-.pagination {
+/* 分页器样式 */
+.pagination-wrapper {
+  margin-top: 50px;
   display: flex;
   justify-content: center;
-  gap: 10px;
-  margin-top: 60px;
+  align-items: center;
+  gap: 20px;
+
+  .page-nav-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: 1px solid #EEE;
+    background: #FFF;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    &:hover:not(:disabled) {
+      border-color: rgb(var(--color-accent, #4A90E2));
+      color: rgb(var(--color-accent, #4A90E2));
+    }
+  }
+
+  .page-numbers {
+    display: flex;
+    gap: 10px;
+
+    .page-number-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      border: none;
+      background: #FFF;
+      color: #666;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        background: #F0F2F5;
+        color: rgb(var(--color-accent, #4A90E2));
+      }
+
+      &.active {
+        background: rgb(var(--color-accent, #4A90E2));
+        color: #FFF;
+      }
+    }
+  }
 }
 
-.page-btn {
-  width: 40px;
-  height: 40px;
-  border: none;
-  border-radius: 12px;
-  background: rgb(var(--color-bg-secondary));
-  color: rgb(var(--color-text-primary));
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.3s;
-
-  &:hover:not(:disabled) {
-    background: #409eff;
-    color: white;
+/* 响应式适配 */
+@media (max-width: 992px) {
+  .moments-layout {
+    grid-template-columns: 1fr;
+  }
+  
+  .moments-sidebar {
+    position: static;
+    order: -1; /* 移动端侧边栏统计信息提到上方 */
   }
 
-  &.active {
-    background: #409eff;
-    color: white;
-    font-weight: bold;
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .moments-container {
+    padding: 30px 15px;
   }
 
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  .moments-header .page-title {
+    font-size: 32px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
   }
 }
 </style>
