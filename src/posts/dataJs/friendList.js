@@ -1,5 +1,11 @@
 export const friendsList = [
     {
+        "name": "盼雨晴",
+        "desc": "荒芜但不衰败",
+        "avatar": "/uploads/img-1772723245902-1538fae4a8652867c9d636baf5ad2add-1772723245916.webp",
+        "_cms_id": "1772723246737-fui5ubqda"
+    },
+    {
         "name": "Lemon &X.",
         "desc": "自由的鸟哪怕身处牢笼也闪烁着自由的光芒",
         "avatar": new URL('../../assets/friendsAvatar/Lemon&X.jpg', import.meta.url).href,
